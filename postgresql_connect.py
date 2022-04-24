@@ -6,12 +6,14 @@ class PostgreConnect:
     ostgreSQのヘルパークラス
     Parameters
     """
-    GET_TABLE_LIST_QUERY = "SELECT t.* FROM (SELECT TABLENAME,SCHEMANAME,'table' as TYPE from PG_TABLES UNION SELECT VIEWNAME,SCHEMANAME,'view' as TYPE from PG_VIEWS) t WHERE TABLENAME LIKE LOWER('{0}') and SCHEMANAME like LOWER('{1}') and TYPE like LOWER('{2}')"
+    GET_TABLE_LIST_QUERY = "SELECT t.* FROM (SELECT TABLENAME,SCHEMANAME,'table' as TYPE from PG_TABLES UNION SELECT " \
+                           "VIEWNAME,SCHEMANAME,'view' as TYPE from PG_VIEWS) t WHERE TABLENAME LIKE LOWER('{0}') and " \ 
+                           "SCHEMANAME like LOWER('{1}') and TYPE like LOWER('{2}') "
     GET_COLUMN_LIST_QUERY = "SELECT TABLE_NAME,COLUMN_NAME,DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME like LOWER('{0}') and TABLE_SCHEMA like LOWER('{1}') ORDER BY ORDINAL_POSITION"
     GET_ALTER_TABLE_QUERY = "ALTER TABLE {0} ADD {1}"
     GET_RENAME_TABLE_QUERY = "alter table {0} rename to {1}"
 
-    def __init__(self, host, dbname, scheme, user, password, port=5432):
+    def __init__(self, host='localhost', dbname='postgres', scheme='public', user='postgres', password='', port=5432):
         """
         DBの接続情報を保持する
         Parameters

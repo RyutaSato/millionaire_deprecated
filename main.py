@@ -1,37 +1,10 @@
 import os
-from typing import List
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from ws_manage import Manager, User, WebSocket
+from fastapi import FastAPI, WebSocketDisconnect
 from fastapi.responses import FileResponse
-from time import sleep
-with open("index.html", 'r', encoding='utf-8') as f:
-    html: str = f.read()
+from db_config import db_config
 
-
-class User:
-    def __init__(self, websocket: WebSocket):
-        self.ws = websocket
-
-
-class Manager:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
-
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-
-    def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
-
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
-
-    async def broadcast(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
-
-
+db_config()
 app = FastAPI(version="0.75.1")
 manager = Manager()
 
