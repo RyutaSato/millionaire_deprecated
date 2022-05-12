@@ -2,23 +2,22 @@ from typing import List
 from user import User
 
 
-class Card:
+class PreCard:
+    """
+    ** this class is DEPRECATED **
+    """
     def __init__(self, name: str, power: int, functions: List[str]):
         self.name = name
         self.power = power
-        self.functions = []
-        for func in functions:
-            tmp = getattr(Card, func, "None")
-            if tmp is not None:
-                self.functions.append(tmp)
+
 
     def __eq__(self, other):
-        if not isinstance(other, Card):
+        if not isinstance(other, PreCard):
             return NotImplemented
         return self.power == other.power
 
     def __lt__(self, other):
-        if not isinstance(other, Card):
+        if not isinstance(other, PreCard):
             return NotImplemented
         return self.power < other.power
 
@@ -53,14 +52,14 @@ class Gameboard:
             self.settings = settings
 
         self.client_number = client_number
-        self.cards: List[Card] = []
+        self.cards: List[PreCard] = []
         self.players: List[List[Card]] = []
 
         for suit in self.settings["suits"]:
             for number, power in zip(self.settings["number"], self.settings["power"]):
-                self.cards.append(Card(suit + number, int(power), []))
+                self.cards.append(PreCard(suit + number, int(power), []))
         for sp_card in self.settings["sp_cards"]:
-            self.cards.append(Card(sp_card, 100, []))
+            self.cards.append(PreCard(sp_card, 100, []))
 
     def game_init(self):
         pass
