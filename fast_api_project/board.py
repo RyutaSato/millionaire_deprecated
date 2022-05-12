@@ -61,13 +61,13 @@ class Board:
         del self
 
     def _command(self, current_player_num):
-        card = self.players[current_player_num].put_out()
+        card = self.players[current_player_num].get_card_from_client_to_board()
         if card is None:
             return
         if not self.card_on_board or card <= self.card_on_board[-1]:
             logger.exception(f"an invalid card was put out from Player {self.players[current_player_num]}"
                              f"the card is {card}")
-            self.players[current_player_num].returned_invalid_card(card)
+            self.players[current_player_num].returned_invalid_card_from_board_to_player(card)
         self._add_card_on_board(card)
         # cardを盤面に出す処理
         for func in card.functions:
@@ -131,3 +131,7 @@ class Board:
         """
         self.card_on_board.append(card)
         # broadcast code
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
