@@ -3,13 +3,19 @@
     Language: Python(3.10.4)
     Web Application: FastAPI(0.75.1)
 
+## 2. Label
+### 
 
 ## Naming and Coding roles
 
 ### 1.ファイル名
-    データベース処理ファイルはdb_???.pyとします
+* **db_???.py**: データベース関連ファイル
+* 
 ### 2.静的ファイル
-    HTML, CSS, JPEG，PNG等はsrcフォルダーに入れます
+    HTML, CSS, JPEG，PNG等はsrcディレクトリに入れます
+### 3.テストファイル
+    テストファイルはtestディレクトリに入れます
+
 
 ## Development:
 - ゲーム盤面
