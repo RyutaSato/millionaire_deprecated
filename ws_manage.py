@@ -1,10 +1,6 @@
 from typing import List
 from fastapi import WebSocket
 
-class User:
-    def __init__(self, websocket: WebSocket):
-        self.ws = websocket
-
 
 class Manager:
     def __init__(self):
