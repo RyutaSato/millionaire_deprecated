@@ -70,8 +70,8 @@ class Board:
             self.players[current_player_num].returned_invalid_card(card)
         self._add_card_on_board(card)
         # cardを盤面に出す処理
-        if card.func is not None:
-            card.func()
+        for func in card.functions:
+            func()
             # broadcast code
 
     def is_valid_cards(self, current_player_num, index_list) -> bool:
