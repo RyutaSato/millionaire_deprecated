@@ -17,9 +17,9 @@ class Card(CardFunc):
         self.strength = strength
         self.functions = []
         for func_name in func_names:
-            tmp = getattr(Card, func_name)
-            if tmp is not None:
-                self.functions.append(tmp)
+            func = getattr(Card, func_name)
+            if func is not None:
+                self.functions.append(func)
 
     def __str__(self):
         return f"{self.suit}:{self.strength}"
