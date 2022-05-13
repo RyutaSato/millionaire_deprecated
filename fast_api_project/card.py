@@ -1,5 +1,4 @@
 import logging
-from card import Card
 from typing import List
 
 logger = logging.getLogger(__name__)
@@ -11,7 +10,7 @@ class CardFunc:
 
 
 class Card(CardFunc):
-    def __init__(self, func_names: List[str], suit='nul', mark='?', order=-1, strength=-1):
+    def __init__(self, suit='nul', mark='?', order=-1, strength=-1, func_names: List[str] = List[str]):
         self.suit = suit
         self.mark = mark
         self.order = order
