@@ -57,22 +57,35 @@ class Board:
             self._command(turn_count % self.player_num)
             turn_count += 1
             # self.status の処理
-            # broadcast code
+            self._broadcast()
         del self
 
+    def _broadcast(self):
+        """
+        全プレイヤーに盤面と，各プレイヤーの手札の枚数，ステータスを配信する
+        json形式
+        {
+            "status": "normal"
+            "board": self.card_on_board[-1].suite + self.card_on_board[-1].order
+            "p1":
+        }
+        :return:
+        """
+        # broadcast
+
     def _command(self, current_player_num):
-        card = self.players[current_player_num].put_out()
+        card = self.players[current_player_num].get_card_from_client_to_board()
         if card is None:
             return
         if not self.card_on_board or card <= self.card_on_board[-1]:
             logger.exception(f"an invalid card was put out from Player {self.players[current_player_num]}"
                              f"the card is {card}")
-            self.players[current_player_num].returned_invalid_card(card)
+            self.players[current_player_num].returned_invalid_card_from_board_to_player(card)
         self._add_card_on_board(card)
         # cardを盤面に出す処理
-        if card.func is not None:
-            card.func()
-            # broadcast code
+        for func in card.functions:
+            func()
+            self._broadcast()
 
     def is_valid_cards(self, current_player_num, index_list) -> bool:
         # not bool but status 連続かつ同じスートあるいは同じ強さであり、盤面より強くなければならない
@@ -116,18 +129,22 @@ class Board:
         return cards
 
     def _init_players(self, cards):
-        f"""
+        """
         {cards}を各プレイヤー{self.players}に分配する．
         """
-        # broadcast code
+        self._broadcast()
         for i in range(self.player_num):
             self.players[i].cards = cards[self.DEFAULT_CARD_NUM * i // self.player_num: \
                                           self.DEFAULT_CARD_NUM * (i + 1) // self.player_num]
 
     def _add_card_on_board(self, card):
-        f"""
+        """
         {card} を {self.card_on_board} Listに追加する -> completed
         各プレイヤーに盤面データをブロードキャストする(async)
         """
         self.card_on_board.append(card)
-        # broadcast code
+        self._broadcast()
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
