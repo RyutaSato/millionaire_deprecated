@@ -1,6 +1,7 @@
 import psycopg2
+import os
 
-
+# This program is DEPLICATED.
 class PostgreConnect:
     """
     ostgreSQのヘルパークラス
@@ -13,7 +14,7 @@ class PostgreConnect:
     GET_ALTER_TABLE_QUERY = "ALTER TABLE {0} ADD {1}"
     GET_RENAME_TABLE_QUERY = "alter table {0} rename to {1}"
 
-    def __init__(self, host='localhost', dbname='postgres', scheme='public', user='postgres', password='', port=5432):
+    def __init__(self, host='localhost', dbname='postgres', scheme='public', user='postgres', password=os.environ.get('SECURITY_KEY'), port=5432):
         """
         DBの接続情報を保持する
         Parameters
