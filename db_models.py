@@ -6,7 +6,7 @@ import ulid
 import db_config
 
 Base = declarative_base()
-SessionClass = sessionmaker(db_config.db_engine)
+SessionClass = sessionmaker(db_config.db_config)
 
 
 class User(Base):
@@ -41,4 +41,4 @@ class BattleRecord(Base):
     bd_p4 = Column(Integer, ForeignKey("users.user_id"))
 
 
-Base.metadata.create_all(db_config.db_engine)
+Base.metadata.create_all(db_config.db_config)

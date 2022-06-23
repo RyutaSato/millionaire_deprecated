@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ws_manage import Manager, WebSocket
@@ -100,11 +101,15 @@ async def read_items(token: str = Depends(oauth2_scheme)):
 async def create_user(user: UserIn):
     # データベースにアカウントを追加する
     print(user.json(), "by post")
-
     return user
 
 
 @app.post("/login/")
 async def login(username: str = Form(None), password: str = Form(None)):
+    # import ulid.ulid.new()
+    ULID_str = '01G657TC2NK9RSCWC977J1PBQG'
+    ULID_int = 2001843181540295356397790693393379056
+    SERVER = "/ws/{client_id}"
     print(username, password)
-    return {"username": username}
+    time.sleep(3)
+    return {"server": SERVER, "token": ULID_int}
