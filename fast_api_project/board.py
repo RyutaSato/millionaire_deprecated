@@ -33,7 +33,7 @@ class Board:
     FUNCTION_HIGH_LIMIT = True
     FUNCTION_EMPEROR = False
 
-    def __init__(self, ulids, player_num=DEFAULT_PLAYER_NUM):
+    def __init__(self, ulids: List[str], player_num=DEFAULT_PLAYER_NUM):
         self.player_num = player_num
         self.players = [Player(ulid) for ulid in ulids]
         cards: List[Card] = self._init_cards()

@@ -4,17 +4,12 @@ import ulid
 
 class Player:
     def __init__(self, ulid_:str):
-        self._ulid: ulid.ULID = ulid.from_str(ulid_)
+        self.__ulid: ulid.ULID = ulid.from_str(ulid_)
         self.cards: List[Card] = []
         self.score = 0
 
     def get_ulid(self):
-        """
-        >>> p = Player('01G2VKC7GNTAE57SA65BCP3V70')
-        >>> p.get_ulid().str
-        '01G2VKC7GNTAE57SA65BCP3V70'
-        """
-        return self._ulid
+        return self.__ulid
 
     def get_card_from_client_to_board(self) -> Card:
         # Clientから受け取る．

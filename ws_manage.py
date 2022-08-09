@@ -6,7 +6,8 @@ class Manager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, token: str = None):
+        # check token validation
         await websocket.accept()
         self.active_connections.append(websocket)
 

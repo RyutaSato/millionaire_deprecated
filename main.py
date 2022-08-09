@@ -1,3 +1,4 @@
+import asyncio
 import os
 import sys
 import time
@@ -31,7 +32,6 @@ app.add_middleware(
 )
 manager = Manager()
 
-
 @app.get("/")
 async def get():
     return FileResponse("index.html")
@@ -48,9 +48,12 @@ async def get():
     return FileResponse("main.js")
 
 
-@app.websocket("/ws/{client_id}")
-async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    await manager.connect(websocket)
+@app.websocket("/ws/")
+async def websocket_endpoint(websocket: WebSocket, token: str):
+    print(token)
+    await manager.connect(websocket, token)
+    for key in websocket.headers.keys():
+        print(key, websocket.headers[key])
     try:
         while True:
             received_msg = await websocket.receive_text()
@@ -84,7 +87,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
         reply_dict = {
             "client": websocket.headers.get('sec-websocket-key'),
             "status": "disconnected",
-            "message": "Client #{} left the chat".format(client_id)
+            "message": "Client #{} left the chat".format(token)
         }
         await manager.broadcast(json.dumps(reply_dict))
 
@@ -108,8 +111,8 @@ async def create_user(user: UserIn):
 async def login(username: str = Form(None), password: str = Form(None)):
     # import ulid.ulid.new()
     ULID_str = '01G657TC2NK9RSCWC977J1PBQG'
-    ULID_int = 2001843181540295356397790693393379056
-    SERVER = "/ws/{client_id}"
+    # ULID_int = 2001843181540295356397790693393379056
+    SERVER = 'ws://localhost:8000/ws/?token='
     print(username, password)
-    time.sleep(3)
-    return {"server": SERVER, "token": ULID_int}
+    await asyncio.sleep(3)
+    return {"server": SERVER, "token": ULID_str}
