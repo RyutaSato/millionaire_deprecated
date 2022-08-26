@@ -1,17 +1,15 @@
 from sqlalchemy.schema import Column, ForeignKey
-from sqlalchemy.orm import relationship, sessionmaker
-from sqlalchemy.types import Integer, String, Date, DateTime, PickleType, ARRAY
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.types import Integer, String, Date, DateTime, PickleType
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID, VARCHAR
 import ulid
-import db_config
-
-Base = declarative_base()
-SessionClass = sessionmaker(db_config.db_engine)
+from db_config import Base, SessionLocal, engine
 
 
 class User(Base):
     __tablename__ = "users"
-    user_id = Column(Integer, primary_key=True, nullable=False, default=ulid.new().int)
+    # :TODO REFACTOR FROM GENERIC TYPES to POSTGRES TYPES
+    uuid = Column(UUID, primary_key=True, nullable=False, default=ulid.new())
     user_handle_name = Column(String(255))
     user_first_name = Column(String(255))
     user_last_name = Column(String(255))
@@ -22,7 +20,7 @@ class User(Base):
 
     def print_user(self):
         return print(
-            f"id:       {self.user_id}"
+            f"id:       {self.uuid}"
             f"uuid:     {self.user_uuid}"
             f"h_name:   {self.user_handle_name}"
             f"name:     {self.user_first_name} / {self.user_last_name}"
@@ -30,15 +28,17 @@ class User(Base):
             f"birthday: {self.user_birthday}"
         )
 
+
 class BattleRecord(Base):
     __tablename__ = "battle_records"
-    bd_id = Column(Integer, primary_key=True)
+    bd_id = Column(UUID, primary_key=True)
     bd_record = Column(PickleType)
     bd_time = Column(DateTime)
-    bd_p1 = Column(Integer, ForeignKey("users.user_id"))
-    bd_p2 = Column(Integer, ForeignKey("users.user_id"))
-    bd_p3 = Column(Integer, ForeignKey("users.user_id"))
-    bd_p4 = Column(Integer, ForeignKey("users.user_id"))
+    bd_p1 = Column(UUID, ForeignKey("users.uuid"))
+    bd_p2 = Column(UUID, ForeignKey("users.uuid"))
+    bd_p3 = Column(UUID, ForeignKey("users.uuid"))
+    bd_p4 = Column(UUID, ForeignKey("users.uuid"))
 
 
-Base.metadata.create_all(db_config.db_engine)
+# :TODO この関数は main.py の app = FastAPI()手前に移動予定
+Base.metadata.create_all(engine)
