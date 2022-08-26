@@ -22,8 +22,6 @@
 - DB操作プログラム
 
 ## Issue:
-- プログラムの開始地点がmain.pyからである．
-   - setup.pyからに変更する．
 - postgresql_connect.pyのファイル名が冗長である
    - db_connect.pyに変更する．
 
