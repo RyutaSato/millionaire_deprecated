@@ -1,20 +1,24 @@
 import psycopg2
 import os
 
-# This program is DEPLICATED.
+
+# This program is DUPLICATED.
+# 今後はORMモデルを使用する。
 class PostgreConnect:
     """
     ostgreSQのヘルパークラス
     Parameters
-    """
     GET_TABLE_LIST_QUERY = "SELECT t.* FROM (SELECT TABLENAME,SCHEMANAME,'table' as TYPE from PG_TABLES UNION SELECT " \
-                           "VIEWNAME,SCHEMANAME,'view' as TYPE from PG_VIEWS) t WHERE TABLENAME LIKE LOWER('{0}') and " \ 
+                           "VIEWNAME,SCHEMANAME,'view' as TYPE from PG_VIEWS) t WHERE TABLENAME LIKE LOWER('{0}') and "\
                            "SCHEMANAME like LOWER('{1}') and TYPE like LOWER('{2}') "
-    GET_COLUMN_LIST_QUERY = "SELECT TABLE_NAME,COLUMN_NAME,DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME like LOWER('{0}') and TABLE_SCHEMA like LOWER('{1}') ORDER BY ORDINAL_POSITION"
+    GET_COLUMN_LIST_QUERY = "SELECT TABLE_NAME,COLUMN_NAME,DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+    where TABLE_NAME like LOWER('{0}') and TABLE_SCHEMA like LOWER('{1}') ORDER BY ORDINAL_POSITION"
     GET_ALTER_TABLE_QUERY = "ALTER TABLE {0} ADD {1}"
     GET_RENAME_TABLE_QUERY = "alter table {0} rename to {1}"
+    """
 
-    def __init__(self, host='localhost', dbname='postgres', scheme='public', user='postgres', password=os.environ.get('SECURITY_KEY'), port=5432):
+    def __init__(self, host='localhost', dbname='postgres', scheme='public', user='postgres',
+                 password=os.environ.get('SECURITY_KEY'), port=5432):
         """
         DBの接続情報を保持する
         Parameters
@@ -41,16 +45,13 @@ class PostgreConnect:
 
     def __connect(self):
         return psycopg2.connect(
-            "host='{0}' port={1} dbname={2} user={3} password='{4}'".format(self.host, self.port, self.dbname,
-                                                                            self.user, self.password))
+            f"host='{self.host}' port={self.port} dbname={self.dbname} user={self.user} password='{self.password}'")
 
     def execute(self, sql):
         """
         SQLを実行し、結果を取得する
         Parameters
         ----------
-        columns : str
-            実行したいSQL
         """
         conn = self.__connect()
         cur = conn.cursor()
@@ -64,8 +65,6 @@ class PostgreConnect:
         複数のSQLをトランザクション配下で実行する
         Parameters
         ----------
-        columns : strs
-            実行したいSQLのリスト
         """
         conn = self.__connect()
         cur = conn.cursor()
@@ -83,8 +82,6 @@ class PostgreConnect:
         select 系のSQLを実行し、結果を全て取得する
         Parameters
         ----------
-        columns : str
-            実行したいSQL
         Returns
         ----------
         data: list
@@ -100,26 +97,24 @@ class PostgreConnect:
         return res
 
     def execute_scalor(self, sql):
-        '''
+        """
         結果の値が１つしかないSQLを実行し、結果を取得する
         Parameters
         ----------
-        columns : str
-            実行したいSQL
         Returns
         ----------
         res:
             実行結果により返された値
-        '''
+        """
         conn = self.__connect()
         cur = conn.cursor()
         cur.execute(sql)
         res = cur.fetchone()
         cur.close()
         conn.close()
-        return res[0] if res != None else None
+        return res[0] if res is not None else None
 
-    def create(self, tablename, columns, primarykey='', isdrop=False):
+    def create(self, table_name, columns, primary_key='', isdrop=False):
         """
         テーブルを作成する
         Parameters
@@ -127,14 +122,14 @@ class PostgreConnect:
         columns : str
             「列名」又は「列名＋型」をカンマ区切りで指定
             <例> 'product text,price int,maker,year'
-        primarykey: str
+        primary_key: str
             プライマリーキーをカンマ区切りで指定
             <例> 'product,year'
         """
         if isdrop:
-            self.drop(tablename)
-        pkey = ',primary key({0})'.format(primarykey) if primarykey != '' else ''
-        sql = 'create table {0}({1} {2})'.format(tablename, columns, pkey)
+            self.drop(table_name)
+        pkey = ',primary key({0})'.format(primary_key) if primary_key != '' else ''
+        sql = f'create table {table_name}({columns} {pkey})'
         self.execute(sql)
 
     def drop(self, tablename):
@@ -145,8 +140,11 @@ class PostgreConnect:
         tablename : str
             削除したいテーブル名
         """
-        res = self.execute_query(self.GET_TABLE_LIST_QUERY.format(tablename, self.scheme, '%%'))
-        if res != []:
+        res = self.execute_query(
+            "SELECT t.* FROM (SELECT TABLENAME,SCHEMANAME,'table' as TYPE from PG_TABLES UNION SELECT " \
+            "VIEWNAME,SCHEMANAME,'view' as TYPE from PG_VIEWS) t WHERE TABLENAME LIKE LOWER('{0}') and " \
+            "SCHEMANAME like LOWER('{1}') and TYPE like LOWER('{2}') ".format(tablename, self.scheme, '%%'))
+        if res:
             self.execute("drop {0} {1}".format(res[0][2], tablename))
 
     def exists(self, tablename):
@@ -154,13 +152,14 @@ class PostgreConnect:
         指定したテーブル、又はビューの有無を判定する
         Parameters
         ----------
-        columns : str
-            実行したいSQL
         Returns
         ----------
             テーブル又はビューが存在すればTrue 存在しなければ False
         """
-        res = self.execute_scalor(self.GET_TABLE_LIST_QUERY.format(tablename, self.scheme, '%%'))
+        res = self.execute_scalor(
+            "SELECT t.* FROM (SELECT TABLENAME,SCHEMANAME,'table' as TYPE from PG_TABLES UNION SELECT " \
+            "VIEWNAME,SCHEMANAME,'view' as TYPE from PG_VIEWS) t WHERE TABLENAME LIKE LOWER('{0}') and " \
+            "SCHEMANAME like LOWER('{1}') and TYPE like LOWER('{2}') ".format(tablename, self.scheme, '%%'))
         return False if res == None else True
 
     def rename(self, old_tablename, new_tablename):
@@ -173,7 +172,7 @@ class PostgreConnect:
         new_tablename : str
             変更後のテーブル名
         """
-        self.execute(self.GET_RENAME_TABLE_QUERY.format(old_tablename, new_tablename))
+        self.execute("alter table {0} rename to {1}".format(old_tablename, new_tablename))
 
     def add_column(self, tablename, columns):
         """
@@ -187,7 +186,7 @@ class PostgreConnect:
             <例> ['product varchar','price numeric(5,2)','maker integer']
         """
         for column in columns:
-            self.execute(self.GET_ALTER_TABLE_QUERY.format(tablename, column))
+            self.execute("ALTER TABLE {0} ADD {1}".format(tablename, column))
 
     def get_table_list(self, table_type=""):
         """
@@ -202,7 +201,11 @@ class PostgreConnect:
             リスト形式のテーブル名一覧
             <例>  ['talbe1','table2','table3']
         """
-        res = self.execute_query(self.GET_TABLE_LIST_QUERY.format('%%', self.scheme, '%' + table_type + '%'))
+        res = self.execute_query(
+            "SELECT t.* FROM (SELECT TABLENAME,SCHEMANAME,'table' as TYPE from PG_TABLES UNION SELECT " \
+            "VIEWNAME,SCHEMANAME,'view' as TYPE from PG_VIEWS) t WHERE TABLENAME LIKE LOWER('{0}') and " \
+            "SCHEMANAME like LOWER('{1}') and TYPE like LOWER('{2}') "
+            .format('%%', self.scheme, '%' + table_type + '%'))
         return [name[0] for name in res]
 
     def get_column_type(self, tablename):
@@ -218,15 +221,17 @@ class PostgreConnect:
             リスト形式でカラム名と型のタプルを返す
             <例>  [('column1','int'),('column2','text'),('column3',real)]
         """
-        res = self.execute_query(self.GET_COLUMN_LIST_QUERY.format(tablename, self.scheme))
+        res = self.execute_query(
+            "SELECT TABLE_NAME,COLUMN_NAME,DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME like LOWER('{0}')"
+            " and TABLE_SCHEMA like LOWER('{1}') ORDER BY ORDINAL_POSITION".format(tablename, self.scheme))
         return [(name[1], name[2]) for name in res]
 
-    def get_column_list(self, tablename):
+    def get_column_list(self, table_name: str):
         """
         指定したテーブルのカラム名を一覧で取得する
         Parameters
         ----------
-        tablename : str
+        table_name : str
             テーブル名
         Returns
         ----------
@@ -234,5 +239,8 @@ class PostgreConnect:
             リスト形式のカラム名一覧
             <例>  ['column1','column2','column3']
         """
-        res = self.execute_query(self.GET_COLUMN_LIST_QUERY.format(tablename, self.scheme))
+        res = self.execute_query(
+            "SELECT TABLE_NAME,COLUMN_NAME,DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS where TABLE_NAME "
+            "like LOWER('{0}') and TABLE_SCHEMA like LOWER('{1}') ORDER BY ORDINAL_POSITION".format(table_name,
+                                                                                                    self.scheme))
         return [name[1] for name in res]
