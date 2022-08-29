@@ -1,31 +1,26 @@
 from sqlalchemy.schema import Column, ForeignKey
 from sqlalchemy.types import Integer, String, Date, DateTime, PickleType
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, VARCHAR
+from sqlalchemy.ext.declarative import as_declarative, declared_attr
+from sqlalchemy.dialects.postgresql import UUID, VARCHAR, DATE, TIMESTAMP
+from sqlalchemy.sql.functions import current_timestamp
 import ulid
 from db_config import Base, SessionLocal, engine
 
 
 class User(Base):
     __tablename__ = "users"
-    # :TODO REFACTOR FROM GENERIC TYPES to POSTGRES TYPES
-    uuid = Column(UUID, primary_key=True, nullable=False, default=ulid.new())
-    user_handle_name = Column(String(255))
-    user_first_name = Column(String(255))
-    user_last_name = Column(String(255))
-    user_email = Column(String(255))
-    user_birthday = Column(Date)
-    created_on = Column(DateTime)
-    updated_on = Column(DateTime)
+    # :TODO REFACTOR GENERIC TYPES to POSTGRES TYPES
+    ulid = Column(UUID, primary_key=True, unique=True, default=ulid.new().uuid)
+    name = Column(VARCHAR(255))
+    password = Column(VARCHAR(255))
+    created_on = Column(TIMESTAMP, nullable=True, server_default=current_timestamp())
+    updated_on = Column(TIMESTAMP, nullable=True, server_default=current_timestamp())
 
     def print_user(self):
         return print(
             f"id:       {self.uuid}"
-            f"uuid:     {self.user_uuid}"
-            f"h_name:   {self.user_handle_name}"
-            f"name:     {self.user_first_name} / {self.user_last_name}"
-            f"mail:     {self.user_email}"
-            f"birthday: {self.user_birthday}"
+            f"name:     {self.name}"
         )
 
 
