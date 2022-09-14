@@ -10,6 +10,7 @@ from uuid import uuid4
 # from asyncio import sleep
 from time import sleep
 
+
 class UserBase(BaseModel):
     ulid: UUID4
     name: str
@@ -59,8 +60,10 @@ def signin_user(name: str, law_password: str) -> UserIn:
         raise Exception()
     return UserIn(name=name, token=token_urlsafe(32))
 
+
 import psycopg2
 from sqlalchemy import create_engine
+
 if __name__ == '__main__':
     conn = psycopg2.connect("dbname=postgres user=postgres password=secret host=localhost port=5432")
     PORT = 3452

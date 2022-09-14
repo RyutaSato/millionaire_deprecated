@@ -11,29 +11,23 @@ from db_config import Base, SessionLocal, engine
 class User(Base):
     __tablename__ = "users"
     # :TODO REFACTOR GENERIC TYPES to POSTGRES TYPES
-    ulid = Column(UUID, primary_key=True, unique=True, default=ulid.new().uuid)
+    ulid = Column(UUID(as_uuid=True), primary_key=True, unique=True, default=ulid.new().uuid)
     name = Column(VARCHAR(255))
     password = Column(VARCHAR(255))
-    created_on = Column(TIMESTAMP, nullable=True, server_default=current_timestamp())
-    updated_on = Column(TIMESTAMP, nullable=True, server_default=current_timestamp())
-
-    def print_user(self):
-        return print(
-            f"id:       {self.uuid}"
-            f"name:     {self.name}"
-        )
+    expired_time = Column(TIMESTAMP)
+    created_at = Column(TIMESTAMP, nullable=True, default=current_timestamp())
+    updated_at = Column(TIMESTAMP, nullable=True, default=current_timestamp())
 
 
-class BattleRecord(Base):
-    __tablename__ = "battle_records"
-    bd_id = Column(UUID, primary_key=True)
-    bd_record = Column(PickleType)
-    bd_time = Column(DateTime)
-    bd_p1 = Column(UUID, ForeignKey("users.uuid"))
-    bd_p2 = Column(UUID, ForeignKey("users.uuid"))
-    bd_p3 = Column(UUID, ForeignKey("users.uuid"))
-    bd_p4 = Column(UUID, ForeignKey("users.uuid"))
+
+# class BattleRecord(Base):
+#     __tablename__ = "battle_records"
+#     bd_id = Column(UUID, primary_key=True)
+#     bd_record = Column(PickleType)
+#     bd_time = Column(DateTime)
+#     bd_p1 = Column(UUID, ForeignKey("users.ulid"))
+#     bd_p2 = Column(UUID, ForeignKey("users.ulid"))
+#     bd_p3 = Column(UUID, ForeignKey("users.ulid"))
+#     bd_p4 = Column(UUID, ForeignKey("users.ulid"))
 
 
-# :TODO この関数は main.py の app = FastAPI()手前に移動予定
-Base.metadata.create_all(engine)

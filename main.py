@@ -1,6 +1,13 @@
 import os
 import sys
 
+from sqlalchemy.orm import Session
+
+from crud import resister_user, login_process
+from db_models import User
+from response import UserCreateResponseModel, LoginResponseModel
+from user_base import UserCreate, create_userbase
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ws_manage import Manager, WebSocket
 from user import UserIn, UserOut
@@ -8,10 +15,22 @@ from fastapi import FastAPI, WebSocketDisconnect, Depends, Form
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import FileResponse  # , ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from db_config import db_config
+from db_config import SessionLocal, engine, Base
 import json
 
-db_config()
+from fastapi import HTTPException
+
+Base.metadata.create_all(bind=engine)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 app = FastAPI(
     debug=True,
     version="0.75.1",
@@ -105,6 +124,17 @@ async def create_user(user: UserIn):
 
 
 @app.post("/login/")
-async def login(username: str = Form(None), password: str = Form(None)):
-    print(username, password)
-    return {"username": username}
+async def login(user: LoginResponseModel, db: Session = Depends(get_db)):
+    signed_user = login_process(db=db, name=user.name, law_password=user.password)
+    if signed_user is None:
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    return signed_user
+
+@app.post("/create")
+async def create_user(user: UserCreateResponseModel, db: Session = Depends(get_db)):
+    new_userbase = create_userbase(user.name, user.password)
+    new_usermodel = User(name=new_userbase.name,
+                         password=new_userbase.password,
+                         expired_time=new_userbase.expired_time)
+    resister_user(db=db, user=new_usermodel)
+    return new_usermodel

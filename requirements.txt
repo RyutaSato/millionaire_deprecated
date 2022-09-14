@@ -1,7 +1,7 @@
 anyio==3.5.0
 asgiref==3.5.0
 click==8.1.2
-fastapi==0.79
+fastapi==0.83
 h11==0.13.0
 httptools==0.4.0
 idna==3.3

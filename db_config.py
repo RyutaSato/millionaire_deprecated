@@ -1,7 +1,7 @@
 import os
 
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.declarative import as_declarative, declared_attr  # , declarative_base
 from sqlalchemy.orm import sessionmaker
 
 SECURITY_KEY = os.environ.get('SECURITY_KEY')
@@ -10,9 +10,16 @@ SQLALCHEMY_DATABASE_URL = f"postgresql://postgres:{SECURITY_KEY}@localhost:5432/
 # このengineを使用してデータベース操作を行う
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-# このクラスを継承して各データベースモデルまたはクラス（ORMモデル）を作成する
-Base = declarative_base()
 
+
+# このクラスを継承して各データベースモデルまたはクラス（ORMモデル）を作成する
+# Base = declarative_base()
+# See https://kumano-te.com/activities/sqlalchemy-tips
+@as_declarative()
+class Base:
+    @declared_attr
+    def __tablename__(cls):
+        return cls.__name__.lower()
 # *****DUPLICATED*******
 # SECURITY_KEY = os.environ.get('SECURITY_KEY')
 # DIALECT = 'postgresql'
