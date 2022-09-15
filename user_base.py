@@ -1,51 +1,37 @@
 # this is PLUGIN between Pydantic model and each Python object
-import ulid
-from pydantic import BaseModel, UUID4
-from secrets import token_urlsafe, token_bytes
+from pydantic import BaseModel, validator
+from uuid import UUID
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
-from time import sleep
+from datetime import datetime
+PASSWORD_MAX = 63
+PASSWORD_MIN = 8
+
 
 # This file name will be named user.py
-class UserBase(BaseModel):
+class UserModel(BaseModel):
     name: str
-    expired_time: datetime
-    token: str
 
     class Config:
         orm_mode = True
 
 
-class UserIn(UserBase):
+class UserIn(UserModel):
     password: str
 
+    def verify_password(self, hashed_password: str) -> bool:
+        return CryptContext(schemes=["bcrypt"], deprecated="auto").verify(self.password, hashed_password)
 
-class UserCreate(UserBase):
+
+class UserOut(UserModel):
+    ulid: UUID
+    created_at: datetime
+
+
+class UserCreate(UserModel):
     password: str
 
-
-class UserOut(BaseModel):
-    name: str
-    expired_time: datetime
-    token: str
-    # email: EmailStr
-    # full_name: str | None = None
-
-
-def create_userbase(name: str, law_password: str) -> UserCreate:
-    password = CryptContext(schemes=["bcrypt"], deprecated="auto").hash(law_password)
-    sleep(1)
-    # :TODO DBにアクセス
-    return UserCreate(
-        name=name,
-        password=password,
-        expired_time=datetime.now() + timedelta(days=8),
-        token=token_urlsafe(32)
-    )
-
-
-def authenticate_user(law_password: str, hashed_password: str) -> bool:
-    # :TODO this class will be async
-    if CryptContext(schemes=["bcrypt"], deprecated="auto").verify(law_password, hashed_password):
-        return True
-    return False
+    @validator('password')
+    def validate_password_count(cls, law_password: str):
+        if not PASSWORD_MIN <= len(law_password) <= PASSWORD_MAX:
+            raise ValueError(f"password must be {PASSWORD_MIN} or over and {PASSWORD_MAX} or under.")
+        return law_password

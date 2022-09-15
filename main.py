@@ -1,16 +1,15 @@
 import os
 import sys
 
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from crud import resister_user, login_process
-from db_models import User
-from response import UserCreateResponseModel, LoginResponseModel
-from user_base import UserCreate, create_userbase
+from crud import add_user_to_db, verify_name
+from db_models import UserOrm
+from user_base import UserCreate, UserOut, UserIn
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ws_manage import Manager, WebSocket
-from user import UserIn, UserOut
 from fastapi import FastAPI, WebSocketDisconnect, Depends, Form
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.responses import FileResponse  # , ORJSONResponse
@@ -33,7 +32,7 @@ def get_db():
 
 app = FastAPI(
     debug=True,
-    version="0.75.1",
+    version="0.83",
     # default_response_class=ORJSONResponse
 )
 origins = [
@@ -123,18 +122,14 @@ async def create_user(user: UserIn):
     return user
 
 
-@app.post("/login/")
-async def login(user: LoginResponseModel, db: Session = Depends(get_db)):
-    signed_user = login_process(db=db, name=user.name, law_password=user.password)
-    if signed_user is None:
-        raise HTTPException(status_code=401, detail="Incorrect username or password")
-    return signed_user
+@app.post("/login/", response_model=UserOut)
+async def login(user: UserIn, db: Session = Depends(get_db)):
+    signed_user_orm = verify_name(db, user.name)
+    if signed_user_orm is not None and user.verify_password(signed_user_orm.password):
+        return signed_user_orm
+    raise HTTPException(status_code=401, detail="Incorrect username or password")
 
-@app.post("/create")
-async def create_user(user: UserCreateResponseModel, db: Session = Depends(get_db)):
-    new_userbase = create_userbase(user.name, user.password)
-    new_usermodel = User(name=new_userbase.name,
-                         password=new_userbase.password,
-                         expired_time=new_userbase.expired_time)
-    resister_user(db=db, user=new_usermodel)
-    return new_usermodel
+
+@app.post("/create", response_model=UserOut)
+async def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    return add_user_to_db(db, UserOrm.from_pymodel(user))

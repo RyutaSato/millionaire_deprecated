@@ -1,8 +1,10 @@
 from fastapi import WebSocket
 from pydantic import BaseModel  # , EmailStr
 from secrets import token_urlsafe
+
+
 # This program is duplicated.
-# User Model will be changed to user_base.py
+# UserOrm Model will be changed to user_base.py
 
 class User:
 
