@@ -1,0 +1,51 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <h1>WebSocket Chat</h1>
+        <form action="" onsubmit="sendMessage(event)">
+            <button onclick="connect(event)">Connect</button>
+            <hr>
+            <label>Message: <input type="text" id="messageText" autocomplete="off"/></label>
+            <button>Send</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+        <script>
+          let ws = null;
+
+          function connect(event) {
+            const token = getParam("token")
+            ws = new WebSocket("ws://localhost:8000/" + "ws?token=" + token);
+                ws.onmessage = function(event) {
+                    var messages = document.getElementById('messages')
+                    var message = document.createElement('li')
+                    var content = document.createTextNode(event.data)
+                    message.appendChild(content)
+                    messages.appendChild(message)
+                };
+                event.preventDefault()
+            }
+            function sendMessage(event) {
+              const input = document.getElementById("messageText");
+              ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+            function getParam(name, url) {
+                if (!url) url = window.location.href;
+                name = name.replace(/[\[\]]/g, "\\$&");
+                var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                    results = regex.exec(url);
+                if (!results) return null;
+                if (!results[2]) return '';
+                return decodeURIComponent(results[2].replace(/\+/g, " "));
+            }
+        </script>
+</body>
+</html>

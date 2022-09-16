@@ -15,3 +15,7 @@ function sendMessage(event) {
     event.preventDefault()
 }
 
+function signIn(event) {
+    let name = document.getElementById("")
+
+}
