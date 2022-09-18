@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID, VARCHAR, DATE, TIMESTAMP
 from sqlalchemy.sql.functions import current_timestamp
 import ulid
 from db_config import Base, SessionLocal, engine
-from user_base import UserModel, UserCreate
+from user import UserModel, UserCreate
 
 
 class UserOrm(Base):

@@ -1,30 +1,24 @@
-from typing import List
 from card import Card
 import ulid
+from uuid import UUID
+from pydantic import BaseModel
 
-class Player:
-    def __init__(self, ulid_:str):
-        self._ulid: ulid.ULID = ulid.from_str(ulid_)
-        self.cards: List[Card] = []
-        self.score = 0
 
-    def get_ulid(self):
-        """
-        >>> p = Player('01G2VKC7GNTAE57SA65BCP3V70')
-        >>> p.get_ulid().str
-        '01G2VKC7GNTAE57SA65BCP3V70'
-        """
-        return self._ulid
+class Player(BaseModel):
+    ulid: UUID
+    name: str
+    cards: list[Card] = []
 
-    def get_card_from_client_to_board(self) -> Card:
-        # Clientから受け取る．
-        # 整合性を調べる
-        # 値を盤面に返す
-        return self.cards.pop()
+    def print_status(self):
+        print("******* player: {0} name: {1} ********".format(self.ulid, self.name))
+        for card in self.cards:
+            print(card, end=", ")
+        print()
 
-    def returned_invalid_card_from_board_to_player(self, card):
-        self.cards.append(card)
+    @staticmethod
+    def test_create_player():
+        return Player(ulid=ulid.new().uuid, name="test")
+
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    pass

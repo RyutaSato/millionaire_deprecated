@@ -1,28 +1,42 @@
 import logging
-from typing import List
+from pydantic import BaseModel
+from pydantic.types import Enum
 
 logger = logging.getLogger(__name__)
 
 
-class CardFunc:
-    def func_skip(self):
-        pass
+class CardNumber(Enum):
+    NONE = 0
+    ACE = 1
+    DEUCE = 2
+    TREY = 3
+    CATER = 4
+    CINQUE = 5
+    SICE = 6
+    SEVEN = 7
+    EIGHT = 8
+    NINE = 9
+    TEN = 10
+    JACK = 11
+    QUEEN = 12
+    KING = 13
 
 
-class Card(CardFunc):
-    def __init__(self, suit='nul', mark='?', order=-1, strength=-1, func_names: List[str] = List[str]):
-        self.suit = suit
-        self.mark = mark
-        self.order = order
-        self.strength = strength
-        self.functions = []
-        for func_name in func_names:
-            func = getattr(Card, func_name)
-            if func is not None:
-                self.functions.append(func)
+class CardSuite(Enum):
+    JOKER = 0
+    SPADE = 1
+    CLOVER = 2
+    DIAMOND = 3
+    HEART = 4
+
+
+class Card(BaseModel):
+    suite: CardSuite
+    number: CardNumber
+    strength: int
 
     def __str__(self):
-        return f"{self.suit}:{self.strength}"
+        return f"{self.suite.name}{self.number.value}"
 
     def __eq__(self, other):
         if not isinstance(other, Card):
@@ -47,4 +61,16 @@ class Card(CardFunc):
         return not self.__lt__(other)
 
     def __del__(self):
-        logger.info(f'deleted Card {self.suit} {self.order}')
+        pass
+    @staticmethod
+    def set_strength(number: int):
+        return (number + 10) % 13
+
+if __name__ == "__main__":
+    li = []
+    for suite in range(1, 5):
+        for number in range(1, 14):
+            li.append(Card(suite=suite, number=number, strength=Card.set_strength(number)))
+    for i in li:
+        print(i, end=" ")
+    print()

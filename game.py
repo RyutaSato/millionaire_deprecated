@@ -1,5 +1,5 @@
 from typing import List
-from user import User
+from user import UserModel
 
 
 class PreCard:

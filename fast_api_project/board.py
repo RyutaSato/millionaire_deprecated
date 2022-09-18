@@ -1,150 +1,191 @@
-from typing import List
+from datetime import datetime
+from uuid import UUID
+
+import ulid
+
+from command import Command, OperationEnum
 from player import Player
-from card import Card
+from card import Card, CardSuite
 from random import shuffle
 import logging
+from pydantic import BaseModel
+from config import Config
+from queue import Queue
 
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-class Board:
-    MAX_STRENGTH = 100
-    DEFAULT_JOKER_NUM = 2
-    DEFAULT_PLAYER_NUM = 4
-    SUIT_SET = ['Spade', 'Clover', 'Diamond', 'Heart']
-    MARK_SET = ['♠', '☘', '♦', '♥']
-    STRENGTH = [12, 13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    DEFAULT_MARK_NUM = len(SUIT_SET)
-    DEFAULT_NUMBER_NUM = len(STRENGTH)
-    DEFAULT_CARD_NUM = DEFAULT_NUMBER_NUM * DEFAULT_MARK_NUM + DEFAULT_JOKER_NUM
-    FUNCTION_333SANDSTORM = False
-    FUNCTION_44STOP = False
-    FUNCTION_5SKIP = False
-    FUNCTION_66NECK = False
-    FUNCTION_7GIFT = True
-    FUNCTION_8CUT = True
-    FUNCTION_99RESQUE = False
-    FUNCTION_10THROW = True
-    FUNCTION_11BACK = False
-    FUNCTION_12BOMBER = False
-    FUNCTION_13SKIP = False
-    FUNCTION_REVOLUTION = True
-    FUNCTION_LOW_LIMIT = True
-    FUNCTION_HIGH_LIMIT = True
-    FUNCTION_EMPEROR = False
+class InvalidInputException(Exception):
+    def __init__(self, ulid_: UUID, msg: str = "", is_skipped: bool = False, reason: str = "Invalid Input"):
+        self.ulid = ulid_
+        self.msg = msg
+        self.is_skipped = is_skipped
+        self.reason = reason
+        logger.error("{} {}".format(self.reason, self.msg))
 
-    def __init__(self, ulids, player_num=DEFAULT_PLAYER_NUM):
-        self.player_num = player_num
-        self.players = [Player(ulid) for ulid in ulids]
-        cards: List[Card] = self._init_cards()
-        self._init_players(cards)
-        self.card_on_board: List[Card] = []
-        self.status = 0
-        for i in range(self.player_num):
-            self.status |= 1 << i
+    def __str__(self):
+        if self.is_skipped:
+            return "{} {}".format(self.reason, self.msg), "player {} is skipped.".format(self.ulid)
+        return "{} {}".format(self.reason, self.msg)
 
-    def __str__(self) -> str:
-        s = ''
-        s += f"{'-' * 10} Status {'-' * 10}"
+
+def cards_from_str(player: Player, str_cards: str) -> list[Card]:
+    li_cards = str_cards.split("&")
+    cards = []
+    for str_card in li_cards:
+        num = str_card[1:]
+        if not num.isnumeric():
+            raise InvalidInputException(
+                player.ulid, msg=str_cards, is_skipped=True, reason="card number format is wrong.")
+        num = int(num)
+        if str_card[0] == 's':
+            suite = CardSuite.SPADE
+        elif str_card[0] == 'c':
+            suite = CardSuite.CLOVER
+        elif str_card[0] == 'd':
+            suite = CardSuite.DIAMOND
+        elif str_card[0] == 'h':
+            suite = CardSuite.HEART
+        else:
+            raise InvalidInputException(
+                player.ulid, msg=str_cards, is_skipped=True, reason="card suite format is wrong.")
+        card = Card(suite=suite, number=num, strength=Card.set_strength(num))
+        # if not card in player.cards:
+        #     raise InvalidInputException(
+        #         player.ulid, msg=str_cards, is_skipped=True, reason="player don't have this card {}".format(card))
+        # player.cards.pop(player.cards.index(card))
+        cards.append(card)
+    return cards
+
+
+class Board(BaseModel):
+    id: UUID = ulid.new().uuid
+    created_at: datetime = datetime.now()
+    config: Config = Config()
+    players: list[Player]
+    discards: list[Card] = []
+
+    def play(self):
+        logger.debug("this game is started.")
+        que = Queue()
+        self.input_command(que)
+        self.do_command(que)
+        logger.debug("this game is finished.")
+
+    def input_command(self, que: Queue):
+        """
+        input example:
+            exit
+            pull s3&d3
+            give d7&c7 target1&target2
+        """
+        while True:
+            for player in self.players:
+                logger.debug("{0} is turn".format(player.ulid))
+                self.print_specific_status()
+                str_cmds: list[str] = list(input().split(","))
+                for str_cmd in str_cmds:
+                    list_cmd = str_cmd.split()
+                    if list_cmd[0] == "exit":
+                        que.put(None)
+                        return
+                    if len(list_cmd) == 2:
+                        que.put(Command(
+                            player=player,
+                            cards=cards_from_str(player, list_cmd[1]),
+                            operation=OperationEnum[list_cmd[0]]))
+                    elif len(list_cmd) == 3:
+                        targets = [self.player_from_uuid(UUID(target)) for target in list_cmd[2].split("&")]
+                        que.put(Command(
+                            player=player,
+                            cards=cards_from_str(player, list_cmd[1]),
+                            targets=targets,
+                            operation=OperationEnum[list_cmd[0]]))
+                    else:
+                        raise InvalidInputException(player.ulid, is_skipped=True)
+
+    def do_command(self, que: Queue):
+        while True:
+            cmd: Command | None = que.get()
+            if cmd is None:
+                break
+            if cmd.operation == OperationEnum.pull:
+                cmd.player.cards.pop(cmd.player.cards.index(*cmd.cards))
+                self.discards.append(*cmd.cards)
+            elif cmd.operation == OperationEnum.skip:
+                pass
+            else:
+                raise InvalidInputException(
+                    cmd.player.ulid,
+                    is_skipped=True,
+                    reason="command format is invalid")
+
+    def player_from_uuid(self, ulid_: UUID) -> Player:
         for player in self.players:
-            s += f"cards : {player.cards}"
-        s += f"{'-' * 25}"
-        return s
+            if ulid_ == player.ulid:
+                return player
+        raise InvalidInputException(ulid_, msg="Player with ulid {} does not exit.".format(ulid_))
 
-    def play_game(self):
-        turn_count = 0
-        while self.status:
-            self._command(turn_count % self.player_num)
-            turn_count += 1
-            # self.status の処理
-            self._broadcast()
-        del self
+    def distribute_cards(self) -> None:
+        while self.discards:
+            for player in self.players:
+                if self.discards:
+                    player.cards.append(self.discards.pop())
 
-    def _broadcast(self):
-        """
-        全プレイヤーに盤面と，各プレイヤーの手札の枚数，ステータスを配信する
-        json形式
-        {
-            "status": "normal"
-            "board": self.card_on_board[-1].suite + self.card_on_board[-1].order
-            "p1":
-        }
-        :return:
-        """
-        # broadcast
+    def create_cards(self) -> None:
+        for suite in range(1, 5):
+            for number in range(1, 14):
+                self.discards.append(Card(suite=suite, number=number, strength=(number + 10) % 13))
 
-    def _command(self, current_player_num):
-        card = self.players[current_player_num].get_card_from_client_to_board()
-        if card is None:
-            return
-        if not self.card_on_board or card <= self.card_on_board[-1]:
-            logger.exception(f"an invalid card was put out from Player {self.players[current_player_num]}"
-                             f"the card is {card}")
-            self.players[current_player_num].returned_invalid_card_from_board_to_player(card)
-        self._add_card_on_board(card)
-        # cardを盤面に出す処理
-        for func in card.functions:
-            func()
-            self._broadcast()
+    def shuffle_cards(self) -> None:
+        shuffle(self.discards)
 
-    def is_valid_cards(self, current_player_num, index_list) -> bool:
-        # not bool but status 連続かつ同じスートあるいは同じ強さであり、盤面より強くなければならない
-        num_list = []
-        for num in index_list:
-            num_list.append(self.players[current_player_num].cards[num].order)
+    def print_specific_status(self):
+        print("****** board_id: {0} ******".format(self.id))
+        print("created time: {0} ".format(self.created_at))
+        print("******* discards status *******")
+        cnt = 0
+        if self.discards:
+            for card in self.discards:
+                print(card, end=", ")
+                cnt += 1
+                if cnt % 11 == 0:
+                    print()
+            print()
+        else:
+            print("No cards")
+        print("****** EACH PLAYER STATUS *****")
+        for player in self.players:
+            if player.cards:
+                player.print_status()
+            else:
+                print("player: {} No cards".format(player.ulid))
+        print()
+        print()
 
-    def is_same_suit(self, current_player_num, index_list) -> bool:
-        suit: str = self.players[current_player_num].cards[index_list[0]].suit
-        for index in index_list:
-            if suit != self.players[current_player_num].cards[index].suit:
-                return False
-        return True
+    # TEST METHODS
+    @staticmethod
+    def test_create_board():
+        return Board(players=[Player.test_create_player() for _ in range(4)])
 
-    def is_same_num(self, current_player_num, index_list) -> bool:
-        num: int = self.players[current_player_num].cards[index_list[0]].strength
-        for index in index_list:
-            if num != self.players[current_player_num].cards[index].strength:
-                return False
-        return True
+    @staticmethod
+    def test_init_board_all():
+        board = Board.test_create_board()
+        print("Board instance is created.")
+        board.print_specific_status()
+        board.create_cards()
+        print("ran Board.create_cards")
+        board.print_specific_status()
+        board.shuffle_cards()
+        print("ran Board.shuffle_cards")
+        board.print_specific_status()
+        board.distribute_cards()
+        print("ran Board.distribute_cards")
+        board.print_specific_status()
+        return board
 
-    def is_consecutive_num(self, current_player_num, index_list) -> bool:
-        num_list = []
-        for index in index_list:
-            num_list.append(self.players[current_player_num].cards[index].strength)
-        num_list.sort()
-        for i in range(len(num_list)):
-            if num_list[0] + i != num_list[i]:
-                return False
-        return True
-
-    def _add_joker(self) -> List[Card]:
-        return [Card('Joker', '🃏', 0, self.MAX_STRENGTH)] * self.DEFAULT_JOKER_NUM
-
-    def _init_cards(self) -> List[Card]:
-        cards = self._add_joker()
-        for num in range(self.DEFAULT_NUMBER_NUM):
-            for mark in range(self.DEFAULT_MARK_NUM):
-                cards.append(Card(self.SUIT_SET[mark], self.MARK_SET[mark], num * 10 + mark + 1, self.STRENGTH[num]))
-        shuffle(cards)
-        return cards
-
-    def _init_players(self, cards):
-        """
-        {cards}を各プレイヤー{self.players}に分配する．
-        """
-        self._broadcast()
-        for i in range(self.player_num):
-            self.players[i].cards = cards[self.DEFAULT_CARD_NUM * i // self.player_num: \
-                                          self.DEFAULT_CARD_NUM * (i + 1) // self.player_num]
-
-    def _add_card_on_board(self, card):
-        """
-        {card} を {self.card_on_board} Listに追加する -> completed
-        各プレイヤーに盤面データをブロードキャストする(async)
-        """
-        self.card_on_board.append(card)
-        self._broadcast()
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    board = Board.test_init_board_all()
+    board.play()

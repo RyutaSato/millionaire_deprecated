@@ -1,35 +1,30 @@
 from datetime import datetime
-
+from uuid import UUID
 from pydantic import BaseModel
-from sqlalchemy.schema import Column
 import ulid
 
-from db_models import UserOrm
-from uuid import UUID
 
-class UserPydanticModel(BaseModel):
-    ulid: UUID
+class FriendModel(BaseModel):
+    id: int
     name: str
-    password: str
-    expired_time: datetime
+
+
+class SampleModel(BaseModel):
+    name: str
+    id: int
+    uuid: UUID
     created_at: datetime
-    updated_at: datetime
+    friends: list[FriendModel]
 
-    class Config:
-        orm_mode = True
-
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-ALGORITHM = "HS256"
-TOKEN_EXPIRE_MINUTES = 30
-from pydantic import BaseModel
-from jose import JWTError, jwt
-from datetime import datetime, timedelta
-class Token(BaseModel):
-    token: str
-    token_type: str
-
-def create_access_token(ulid: str, expire:datetime = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRE_MINUTES)):
-    return jwt.encode({"sub": ulid, "exp": expire}, SECRET_KEY)
 
 if __name__ == "__main__":
-    print(create_access_token(ulid.new().str))
+    sample = SampleModel(
+        name="rsato",
+        id=123,
+        uuid=ulid.new().uuid,
+        created_at=datetime.now(),
+        friends=[FriendModel(id=111, name="aaa"), FriendModel(id=222, name="bbb")]
+    )
+    json_str: str = sample.json()
+    sample_from_str = SampleModel.parse_raw(json_str)
+    print(sample_from_str)
