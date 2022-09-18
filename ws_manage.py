@@ -4,6 +4,7 @@ from fastapi import WebSocket
 
 class Manager:
     def __init__(self):
+        # :TODO distribute lobby and each game room
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):

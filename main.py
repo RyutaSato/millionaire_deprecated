@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from crud import add_user_to_db, verify_name
 from db_models import UserOrm
-from user_base import UserCreate, UserOut, UserIn
+from user import UserCreate, UserOut, UserIn
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from ws_manage import Manager, WebSocket
@@ -22,6 +22,7 @@ from fastapi import HTTPException
 
 Base.metadata.create_all(bind=engine)
 
+# :TODO replace tokens with database
 tokens = set()
 
 
@@ -67,13 +68,17 @@ async def get():
 async def get():
     return FileResponse("main.js")
 
+
 @app.get("/wschat/")
 def websocket_endpoint(token: str = Query()):
     return FileResponse("wschat.html")
 
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str = Query()):
     #  :TODO add user authentication using by token
+    if token not in tokens:
+        raise HTTPException(status_code=status.WS_1008_POLICY_VIOLATION)
     await manager.connect(websocket)
     try:
         while True:
@@ -111,25 +116,12 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query()):
         reply_dict = {
             "client": websocket.headers.get('sec-websocket-key'),
             "status": "disconnected",
-            "message": "Client #{} left the chat".format(client_id)
+            "message": "Client #{} left the chat".format(token)
         }
         await manager.broadcast(json.dumps(reply_dict))
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-
-@app.post("/items/")
-async def read_items(token: str = Depends(oauth2_scheme)):
-    return {"token": token}
-
-
-@app.post("/user/", response_model=UserOut)
-async def create_user(user: UserIn):
-    # データベースにアカウントを追加する
-    print(user.json(), "by post")
-
-    return user
 
 
 @app.post("/login/", response_model=UserOut)
