@@ -1,27 +1,37 @@
-from fastapi import WebSocket
-from pydantic import BaseModel  # , EmailStr
-from secrets import token_urlsafe
+# this is PLUGIN between Pydantic model and each Python object
+from pydantic import BaseModel, validator
+from uuid import UUID
+from passlib.context import CryptContext
+from datetime import datetime
+PASSWORD_MAX = 63
+PASSWORD_MIN = 8
 
 
-# This program is duplicated.
-# UserOrm Model will be changed to user_base.py
+# This file name will be named user.py
+class UserModel(BaseModel):
+    name: str
 
-class User:
-
-    def __init__(self, websocket: WebSocket, name):
-        self.ws = websocket
-        self.name = name
-        self.token = token_urlsafe(32)  # 256 bits are necessary and sufficient
+    class Config:
+        orm_mode = True
 
 
-class UserIn(BaseModel):
-    username: str
+class UserIn(UserModel):
     password: str
-    # email: EmailStr
-    full_name: str | None = None
+
+    def verify_password(self, hashed_password: str) -> bool:
+        return CryptContext(schemes=["bcrypt"], deprecated="auto").verify(self.password, hashed_password)
 
 
-class UserOut(BaseModel):
-    username: str
-    # email: EmailStr
-    full_name: str | None = None
+class UserOut(UserModel):
+    ulid: UUID
+    created_at: datetime
+
+
+class UserCreate(UserModel):
+    password: str
+
+    @validator('password')
+    def validate_password_count(cls, law_password: str):
+        if not PASSWORD_MIN <= len(law_password) <= PASSWORD_MAX:
+            raise ValueError(f"password must be {PASSWORD_MIN} or over and {PASSWORD_MAX} or under.")
+        return law_password
