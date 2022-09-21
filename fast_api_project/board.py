@@ -65,6 +65,14 @@ def cards_from_str(player: Player, str_cards: str) -> list[Card]:
     return cards
 
 
+def create_cards() -> list[Card]:
+    cards: list[Card] = []
+    for suite in range(1, 5):
+        for number in range(1, 14):
+            cards.append(Card(suite=suite, number=number, strength=(number + 10) % 13))
+    return cards
+
+
 class Board(BaseModel):
     id: UUID = ulid.new().uuid
     created_at: datetime = datetime.now()
@@ -83,6 +91,7 @@ class Board(BaseModel):
 
     def input_command(self, que: Queue):
         """
+        :TODO move to command_receiver.py
         input example:
             exit
             pull s3&d3
