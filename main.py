@@ -10,6 +10,9 @@ from db_models import UserOrm
 from user import UserCreate, UserOut, UserIn
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from pydantic import BaseModel
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
 from ws_manage import Manager, WebSocket
 from fastapi import FastAPI, WebSocketDisconnect, Depends, Form, status, Security, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -17,13 +20,20 @@ from fastapi.responses import FileResponse, RedirectResponse  # , ORJSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from db_config import SessionLocal, engine, Base
 import json
-
+import logging
 from fastapi import HTTPException
 
+logging.basicConfig(logging.DEBUG)
+logger = logging.getLogger(__name__)
 Base.metadata.create_all(bind=engine)
 
+
+SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+ALGORITHM = "HS256"
+TOKEN_EXPIRE_MINUTES = 30
+
 # :TODO replace tokens with database
-tokens = set()
+tokens = set("01835c3a-fb3d-b4e2-a43e-1682dc0be131")
 
 
 def get_db():
@@ -36,7 +46,7 @@ def get_db():
 
 app = FastAPI(
     debug=True,
-    version="0.83",
+    version="0.85",
     # default_response_class=ORJSONResponse
 )
 origins = [
@@ -77,12 +87,14 @@ def websocket_endpoint(token: str = Query()):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str = Query()):
     #  :TODO add user authentication using by token
-    if token not in tokens:
-        raise HTTPException(status_code=status.WS_1008_POLICY_VIOLATION)
+    #  :this code doesn't work correctly
+    # if token not in tokens:
+    #     raise HTTPException(status_code=status.WS_1008_POLICY_VIOLATION)
     await manager.connect(websocket)
     try:
         while True:
             received_msg = await websocket.receive_text()
+            logger.debug(received_msg)
             await manager.send_personal_message(received_msg, websocket)
 
             # :TODO This code is going to replace as Pydantic model class
@@ -139,13 +151,6 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     return add_user_to_db(db, UserOrm.from_pymodel(user))
 
 
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-ALGORITHM = "HS256"
-TOKEN_EXPIRE_MINUTES = 30
-from pydantic import BaseModel
-from jose import JWTError, jwt
-from datetime import datetime, timedelta
-
 
 class Token(BaseModel):
     token: str
@@ -178,11 +183,11 @@ def get_current_user(ulid: str, db: Session, token: str = Depends(oauth2_scheme)
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(tokens)
+        logger.debug(tokens)
         jwt_ulid: str = payload.get("sub")
         if ulid is None:
             raise credentials_exception
-        print(ulid)
+        logger.debug(ulid)
     except JWTError:
         raise credentials_exception
     user: UserOut = db.query(UserOrm).filter(UserOrm.ulid == jwt_ulid).first()
