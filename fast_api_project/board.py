@@ -1,4 +1,6 @@
+import sys
 from datetime import datetime
+from multiprocessing import freeze_support
 from uuid import UUID
 
 import ulid
@@ -11,9 +13,12 @@ import logging
 from pydantic import BaseModel
 from config import Config
 from queue import Queue
+from threading import Thread
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+DEBUG = True
+
 
 
 class InvalidInputException(Exception):
@@ -51,6 +56,7 @@ def cards_from_str(player: Player, str_cards: str) -> list[Card]:
             raise InvalidInputException(
                 player.ulid, msg=str_cards, is_skipped=True, reason="card suite format is wrong.")
         card = Card(suite=suite, number=num, strength=Card.set_strength(num))
+        logger.debug("{} are selected.".format(str(card)))
         # if not card in player.cards:
         #     raise InvalidInputException(
         #         player.ulid, msg=str_cards, is_skipped=True, reason="player don't have this card {}".format(card))
@@ -69,8 +75,10 @@ class Board(BaseModel):
     def play(self):
         logger.debug("this game is started.")
         que = Queue()
-        self.input_command(que)
-        self.do_command(que)
+        input_thread = Thread(target=self.input_command, args=(que,))
+        do_thread = Thread(target=self.do_command, args=(que,))
+        input_thread.start()
+        do_thread.start()
         logger.debug("this game is finished.")
 
     def input_command(self, que: Queue):
@@ -104,22 +112,29 @@ class Board(BaseModel):
                             operation=OperationEnum[list_cmd[0]]))
                     else:
                         raise InvalidInputException(player.ulid, is_skipped=True)
+                logger.debug("que is {}".format(str(que.empty())))
 
     def do_command(self, que: Queue):
+        logger.debug("do_command is started")
         while True:
+            logger.debug("waiting queue in...")
             cmd: Command | None = que.get()
+            logger.debug("{} command got.".format(cmd))
             if cmd is None:
                 break
             if cmd.operation == OperationEnum.pull:
-                cmd.player.cards.pop(cmd.player.cards.index(*cmd.cards))
-                self.discards.append(*cmd.cards)
+                logger.debug("pull is selected")
+                for card in cmd.cards:
+                    cmd.player.cards.pop(cmd.player.cards.index(card))
+                    self.discards.append(card)
             elif cmd.operation == OperationEnum.skip:
-                pass
+                logger.debug("skip is selected")
             else:
                 raise InvalidInputException(
                     cmd.player.ulid,
                     is_skipped=True,
                     reason="command format is invalid")
+            logger.debug("command is done.")
 
     def player_from_uuid(self, ulid_: UUID) -> Player:
         for player in self.players:
@@ -167,7 +182,7 @@ class Board(BaseModel):
     # TEST METHODS
     @staticmethod
     def test_create_board():
-        return Board(players=[Player.test_create_player() for _ in range(4)])
+        return Board(players=[Player.test_create_player(i) for i in range(4)])
 
     @staticmethod
     def test_init_board_all():
@@ -177,9 +192,10 @@ class Board(BaseModel):
         board.create_cards()
         print("ran Board.create_cards")
         board.print_specific_status()
-        board.shuffle_cards()
-        print("ran Board.shuffle_cards")
-        board.print_specific_status()
+        if DEBUG == False:
+            board.shuffle_cards()
+            print("ran Board.shuffle_cards")
+            board.print_specific_status()
         board.distribute_cards()
         print("ran Board.distribute_cards")
         board.print_specific_status()
