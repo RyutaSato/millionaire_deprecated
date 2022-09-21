@@ -1,6 +1,6 @@
 import logging
 from pydantic import BaseModel
-from pydantic.types import Enum
+from enum import Enum
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +62,11 @@ class Card(BaseModel):
 
     def __del__(self):
         pass
+
     @staticmethod
-    def set_strength(number: int):
-        return (number + 10) % 13
+    def set_strength(num: int):
+        return (num + 10) % 13
+
 
 if __name__ == "__main__":
     li = []

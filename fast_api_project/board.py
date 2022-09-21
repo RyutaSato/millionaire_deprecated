@@ -5,20 +5,20 @@ from uuid import UUID
 
 import ulid
 
-from command import Command, OperationEnum
-from player import Player
-from card import Card, CardSuite
+from fast_api_project.command import Command, OperationEnum
+from fast_api_project.player import Player
+from fast_api_project.card import Card, CardSuite
 from random import shuffle
 import logging
 from pydantic import BaseModel
-from config import Config
+from fast_api_project.config import Config
 from queue import Queue
 from threading import Thread
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 DEBUG = True
-
+if DEBUG:
+    logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class InvalidInputException(Exception):
@@ -91,7 +91,7 @@ class Board(BaseModel):
         while True:
             for player in self.players:
                 logger.debug("{0} is turn".format(player.ulid))
-                self.print_specific_status()
+                self.logging_specific_status()
                 str_cmds: list[str] = list(input().split(","))
                 for str_cmd in str_cmds:
                     list_cmd = str_cmd.split()
@@ -148,60 +148,31 @@ class Board(BaseModel):
                 if self.discards:
                     player.cards.append(self.discards.pop())
 
-    def create_cards(self) -> None:
-        for suite in range(1, 5):
-            for number in range(1, 14):
-                self.discards.append(Card(suite=suite, number=number, strength=(number + 10) % 13))
-
     def shuffle_cards(self) -> None:
         shuffle(self.discards)
 
-    def print_specific_status(self):
-        print("****** board_id: {0} ******".format(self.id))
-        print("created time: {0} ".format(self.created_at))
-        print("******* discards status *******")
+    def logging_specific_status(self):
+        logger.info("****** board_id: {0} ******".format(self.id))
+        logger.info("created time: {0} ".format(self.created_at))
+        logger.info("******* discards status *******")
         cnt = 0
         if self.discards:
+            cards_str = []
             for card in self.discards:
-                print(card, end=", ")
+                cards_str.append(str(card))
                 cnt += 1
                 if cnt % 11 == 0:
-                    print()
-            print()
+                    logger.info(", ".join(cards_str))
+                    cards_str = []
         else:
-            print("No cards")
-        print("****** EACH PLAYER STATUS *****")
+            logger.info("No cards")
+        logger.info("****** EACH PLAYER STATUS *****")
         for player in self.players:
             if player.cards:
                 player.print_status()
             else:
-                print("player: {} No cards".format(player.ulid))
-        print()
-        print()
-
-    # TEST METHODS
-    @staticmethod
-    def test_create_board():
-        return Board(players=[Player.test_create_player(i) for i in range(4)])
-
-    @staticmethod
-    def test_init_board_all():
-        board = Board.test_create_board()
-        print("Board instance is created.")
-        board.print_specific_status()
-        board.create_cards()
-        print("ran Board.create_cards")
-        board.print_specific_status()
-        if DEBUG == False:
-            board.shuffle_cards()
-            print("ran Board.shuffle_cards")
-            board.print_specific_status()
-        board.distribute_cards()
-        print("ran Board.distribute_cards")
-        board.print_specific_status()
-        return board
+                logger.info("player: {} No cards".format(player.ulid))
 
 
 if __name__ == '__main__':
-    board = Board.test_init_board_all()
-    board.play()
+    pass
