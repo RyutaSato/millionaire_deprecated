@@ -1,3 +1,5 @@
+from enum import Enum
+
 from pydantic import BaseModel, validator
 from datetime import datetime, timedelta
 from fast_api_project.card import Card
@@ -22,14 +24,20 @@ class WebSocketIn(BaseModel):
     def ping(self) -> timedelta:
         return datetime.now() - self.sent_at
 
+    class Config:
+        use_enum_values = True
+
 
 class WebSocketOut(BaseModel):
     # WebSocket sending Model inherits this class
     obj_id: UUID = ulid.new().uuid
     sent_at: datetime = datetime.now()
 
+    class Config:
+        use_enum_values = True
 
-class ErrorHandleModel(WebSocketIn):
+
+class ErrorHandleModelIn(WebSocketIn):
     @validator("error")
     def check_error_flag(self):
         if not self.error:
@@ -37,11 +45,24 @@ class ErrorHandleModel(WebSocketIn):
             ValueError()
 
 
-class UserStatusChangedNotify(WebSocketOut):
+class UserStatusChangedOut(WebSocketOut):
     pass
 
 
-class BoardAllStatusNotify(WebSocketOut):
+class BoardAllStatusOut(WebSocketOut):
     discards: list[Card]
     players: list[Player]
     cards: list[Card]
+
+
+class SelectedCardsIn(WebSocketIn):
+    cards: list[Card]
+
+
+class LobbyCommand(Enum):
+    QUEUE_IN = "queue_in"
+    QUEUE_CANCEL = "queue_cancel"
+
+
+class SelectedLobbyCommandIn(WebSocketIn):
+    command: LobbyCommand
