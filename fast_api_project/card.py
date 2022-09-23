@@ -23,6 +23,7 @@ class CardNumber(Enum):
 
 
 class CardSuite(Enum):
+    # :TODO change suite values to suite strings
     JOKER = 0
     SPADE = 1
     CLOVER = 2
@@ -66,6 +67,9 @@ class Card(BaseModel):
     @staticmethod
     def set_strength(num: int):
         return (num + 10) % 13
+
+    class Config:
+        use_enum_values = True
 
 
 if __name__ == "__main__":
