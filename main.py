@@ -23,7 +23,7 @@ import json
 import logging
 from fastapi import HTTPException
 
-logging.basicConfig(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 Base.metadata.create_all(bind=engine)
 
