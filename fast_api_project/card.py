@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from enum import Enum
 
 logger = logging.getLogger(__name__)
+SUITE_LIST = ["jo", "sp", "cl", "di", "he"]
 
 
 class CardNumber(Enum):
@@ -24,11 +25,11 @@ class CardNumber(Enum):
 
 class CardSuite(Enum):
     # :TODO change suite values to suite strings
-    JOKER = 0
-    SPADE = 1
-    CLOVER = 2
-    DIAMOND = 3
-    HEART = 4
+    JOKER = SUITE_LIST[0]
+    SPADE = SUITE_LIST[1]
+    CLOVER = SUITE_LIST[2]
+    DIAMOND = SUITE_LIST[3]
+    HEART = SUITE_LIST[4]
 
 
 class Card(BaseModel):
@@ -36,8 +37,27 @@ class Card(BaseModel):
     number: CardNumber
     strength: int
 
+    @classmethod
+    def retrieve_from_str(cls, strings: str):
+        str_cards = strings.split("&")
+        cards: list[cls] = []
+        for str_card in str_cards:
+            if not str_card[2:].isnumeric() or not str_card[:2] in SUITE_LIST:
+                logger.error("ValueError: {} includes a wrong value".format(strings))
+                return []
+            num = int(str_card[2:])
+            if not 0 <= num <= 13:
+                logger.error("ValueError: Invalid card number: {}".format(num))
+                return []
+            cards.append(cls(
+                suite=str_card[:2],
+                number=int(str_card[2:]),
+                strength=cls.set_strength(int(str_card[2:]))
+            ))
+        return cards
+
     def __str__(self):
-        return f"{self.suite.name}{self.number.value}"
+        return f"{self.suite}{self.number}"
 
     def __eq__(self, other):
         if not isinstance(other, Card):
@@ -72,11 +92,15 @@ class Card(BaseModel):
         use_enum_values = True
 
 
+# :TODO Move to test_card.py
 if __name__ == "__main__":
     li = []
-    for suite in range(1, 5):
+    for suite in SUITE_LIST[1:]:
         for number in range(1, 14):
             li.append(Card(suite=suite, number=number, strength=Card.set_strength(number)))
     for i in li:
-        print(i, end=" ")
+        print(i.json(), end=" ")
     print()
+    li = Card.retrieve_from_str("he13&sp8")
+    for i in li:
+        print(i.json())

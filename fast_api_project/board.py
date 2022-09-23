@@ -5,6 +5,7 @@ from uuid import UUID
 
 import ulid
 
+import fast_api_project.card
 from fast_api_project.command import Command, OperationEnum
 from fast_api_project.player import Player
 from fast_api_project.card import Card, CardSuite
@@ -35,39 +36,12 @@ class InvalidInputException(Exception):
         return "{} {}".format(self.reason, self.msg)
 
 
-def cards_from_str(player: Player, str_cards: str) -> list[Card]:
-    li_cards = str_cards.split("&")
-    cards = []
-    for str_card in li_cards:
-        num = str_card[1:]
-        if not num.isnumeric():
-            raise InvalidInputException(
-                player.ulid, msg=str_cards, is_skipped=True, reason="card number format is wrong.")
-        num = int(num)
-        if str_card[0] == 's':
-            suite = CardSuite.SPADE
-        elif str_card[0] == 'c':
-            suite = CardSuite.CLOVER
-        elif str_card[0] == 'd':
-            suite = CardSuite.DIAMOND
-        elif str_card[0] == 'h':
-            suite = CardSuite.HEART
-        else:
-            raise InvalidInputException(
-                player.ulid, msg=str_cards, is_skipped=True, reason="card suite format is wrong.")
-        card = Card(suite=suite, number=num, strength=Card.set_strength(num))
-        logger.debug("{} are selected.".format(str(card)))
-        # if not card in player.cards:
-        #     raise InvalidInputException(
-        #         player.ulid, msg=str_cards, is_skipped=True, reason="player don't have this card {}".format(card))
-        # player.cards.pop(player.cards.index(card))
-        cards.append(card)
-    return cards
+
 
 
 def create_cards() -> list[Card]:
     cards: list[Card] = []
-    for suite in range(1, 5):
+    for suite in fast_api_project.card.SUITE_LIST:
         for number in range(1, 14):
             cards.append(Card(suite=suite, number=number, strength=(number + 10) % 13))
     return cards
@@ -94,8 +68,8 @@ class Board(BaseModel):
         :TODO move to command_receiver.py
         input example:
             exit
-            pull s3&d3
-            give d7&c7 target1&target2
+            pull sp3&d3
+            give di7&cl7 target1&target2
         """
         while True:
             for player in self.players:
