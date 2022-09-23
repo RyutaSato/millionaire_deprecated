@@ -20,7 +20,8 @@
           let ws = null;
 
           function connect(event) {
-            const token = getParam("token")
+            //const token = getParam("token")
+              const token = '01835c3a-fb3d-b4e2-a43e-1682dc0be131'
             ws = new WebSocket("ws://localhost:8000/" + "ws?token=" + token);
                 ws.onmessage = function(event) {
                     var messages = document.getElementById('messages')

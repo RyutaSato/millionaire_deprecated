@@ -6,6 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class Player(BaseModel):
     ulid: UUID
     name: str
