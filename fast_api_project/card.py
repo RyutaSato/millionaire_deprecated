@@ -43,7 +43,7 @@ class Card(BaseModel):
         cards: list[Card] = []
         for su in SUITE_LIST:
             for num in range(1, 14):
-                cards.append(Card(suite=su, number=num, strength=(number + 10) % 13))
+                cards.append(cls(suite=su, number=num, strength=(num + 10) % 13))
         if is_shuffle:
             shuffle(cards)
         return cards

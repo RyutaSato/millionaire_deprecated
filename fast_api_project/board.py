@@ -5,7 +5,7 @@ from uuid import UUID
 
 import ulid
 
-from fast_api_project.command import Command, OperationEnum
+from fast_api_project.playeroperation import PlayerOperation, PlayerOperationEnum
 from fast_api_project.player import Player
 from fast_api_project.card import Card, SUITE_LIST
 from fast_api_project.command_receiver import async_readline
@@ -71,17 +71,17 @@ class Board(BaseModel):
                         que.put(None)
                         return
                     if len(list_cmd) == 2:
-                        que.put(Command(
+                        que.put(PlayerOperation(
                             player=player,
                             cards=Card.retrieve_from_str(list_cmd[1]),
-                            operation=OperationEnum[list_cmd[0]]))
+                            operation=PlayerOperationEnum[list_cmd[0]]))
                     elif len(list_cmd) == 3:
-                        targets = [self.player_from_uuid(UUID(target)) for target in list_cmd[2].split("&")]
-                        que.put(Command(
+                        targets = [self.retrieve_from_uuid(UUID(target)) for target in list_cmd[2].split("&")]
+                        que.put(PlayerOperation(
                             player=player,
                             cards=Card.retrieve_from_str(list_cmd[1]),
                             targets=targets,
-                            operation=OperationEnum[list_cmd[0]]))
+                            operation=PlayerOperationEnum[list_cmd[0]]))
                     else:
                         raise InvalidInputException(player.ulid, is_skipped=True)
                 logger.debug("que is {}".format(str(que.empty())))
@@ -90,16 +90,16 @@ class Board(BaseModel):
         logger.debug("do_command is started")
         while True:
             logger.debug("waiting queue in...")
-            cmd: Command | None = que.get()
+            cmd: PlayerOperation | None = que.get()
             logger.debug("{} command got.".format(cmd))
             if cmd is None:
                 break
-            if cmd.operation == OperationEnum.pull:
+            if cmd.operation == PlayerOperationEnum.pull:
                 logger.debug("pull is selected")
                 for card in cmd.cards:
                     cmd.player.cards.pop(cmd.player.cards.index(card))
                     self.discards.append(card)
-            elif cmd.operation == OperationEnum.skip:
+            elif cmd.operation == PlayerOperationEnum.skip:
                 logger.debug("skip is selected")
             else:
                 raise InvalidInputException(
@@ -115,10 +115,8 @@ class Board(BaseModel):
         raise InvalidInputException(ulid_, msg="Player with ulid {} does not exit.".format(ulid_))
 
     def distribute_cards(self) -> None:
-        while self.discards:
-            for player in self.players:
-                if self.discards:
-                    player.cards.append(self.discards.pop())
+        for i in range(len(self.discards)):
+            self.players[i % len(self.players)].cards.append(self.discards.pop())
 
     def logging_specific_status(self):
         logger.info("****** board_id: {0} ******".format(self.id))
