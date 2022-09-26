@@ -1,6 +1,7 @@
 import logging
 from pydantic import BaseModel
 from enum import Enum
+from random import shuffle
 
 logger = logging.getLogger(__name__)
 SUITE_LIST = ["jo", "sp", "cl", "di", "he"]
@@ -36,6 +37,16 @@ class Card(BaseModel):
     suite: CardSuite
     number: CardNumber
     strength: int
+
+    @classmethod
+    def create_cards(cls, is_shuffle: bool = True):
+        cards: list[Card] = []
+        for su in SUITE_LIST:
+            for num in range(1, 14):
+                cards.append(Card(suite=su, number=num, strength=(number + 10) % 13))
+        if is_shuffle:
+            shuffle(cards)
+        return cards
 
     @classmethod
     def retrieve_from_str(cls, strings: str):

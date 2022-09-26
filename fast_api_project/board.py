@@ -5,11 +5,10 @@ from uuid import UUID
 
 import ulid
 
-import fast_api_project.card
 from fast_api_project.command import Command, OperationEnum
 from fast_api_project.player import Player
-from fast_api_project.card import Card, CardSuite
-from random import shuffle
+from fast_api_project.card import Card, SUITE_LIST
+from fast_api_project.command_receiver import async_readline
 import logging
 from pydantic import BaseModel
 from fast_api_project.config import Config
@@ -36,17 +35,6 @@ class InvalidInputException(Exception):
         return "{} {}".format(self.reason, self.msg)
 
 
-
-
-
-def create_cards() -> list[Card]:
-    cards: list[Card] = []
-    for suite in fast_api_project.card.SUITE_LIST:
-        for number in range(1, 14):
-            cards.append(Card(suite=suite, number=number, strength=(number + 10) % 13))
-    return cards
-
-
 class Board(BaseModel):
     id: UUID = ulid.new().uuid
     created_at: datetime = datetime.now()
@@ -63,7 +51,7 @@ class Board(BaseModel):
         do_thread.start()
         logger.debug("this game is finished.")
 
-    def input_command(self, que: Queue):
+    async def input_command(self, que: Queue):
         """
         :TODO move to command_receiver.py
         input example:
@@ -75,7 +63,8 @@ class Board(BaseModel):
             for player in self.players:
                 logger.debug("{0} is turn".format(player.ulid))
                 self.logging_specific_status()
-                str_cmds: list[str] = list(input().split(","))
+                message = await async_readline()
+                str_cmds: list[str] = list(message.split(","))
                 for str_cmd in str_cmds:
                     list_cmd = str_cmd.split()
                     if list_cmd[0] == "exit":
@@ -84,13 +73,13 @@ class Board(BaseModel):
                     if len(list_cmd) == 2:
                         que.put(Command(
                             player=player,
-                            cards=cards_from_str(player, list_cmd[1]),
+                            cards=Card.retrieve_from_str(list_cmd[1]),
                             operation=OperationEnum[list_cmd[0]]))
                     elif len(list_cmd) == 3:
                         targets = [self.player_from_uuid(UUID(target)) for target in list_cmd[2].split("&")]
                         que.put(Command(
                             player=player,
-                            cards=cards_from_str(player, list_cmd[1]),
+                            cards=Card.retrieve_from_str(list_cmd[1]),
                             targets=targets,
                             operation=OperationEnum[list_cmd[0]]))
                     else:
@@ -130,9 +119,6 @@ class Board(BaseModel):
             for player in self.players:
                 if self.discards:
                     player.cards.append(self.discards.pop())
-
-    def shuffle_cards(self) -> None:
-        shuffle(self.discards)
 
     def logging_specific_status(self):
         logger.info("****** board_id: {0} ******".format(self.id))
