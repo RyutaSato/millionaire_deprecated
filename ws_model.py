@@ -39,8 +39,8 @@ class WebSocketOut(BaseModel):
 
 class ErrorHandleModelIn(WebSocketIn):
     @validator("error")
-    def check_error_flag(self):
-        if not self.error:
+    def check_error_flag(cls):
+        if not cls.error:
             logger.error("An instance of ErrorHandleModel class was created even though no error flag was set")
             ValueError()
 
