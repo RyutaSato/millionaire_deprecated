@@ -5,7 +5,7 @@ import threading
 import logging
 from concurrent.futures import Future
 
-COMMAND_LINE = False
+COMMAND_LINE = True
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,9 @@ from datetime import datetime
 from fast_api_project.card import Card
 
 
-async def test_replies():
+async def test_replies(num: int):
+    # :TODO 後々TestではPydantic Modelを用いる
+    # :TODO test_client.pyに移動予定
     def selected_cards_in(strings: str):
         return SelectedCardsIn(
             sent_at=datetime.now(),
@@ -46,10 +48,16 @@ async def test_replies():
             cards=Card.retrieve_from_str(strings)
         )
 
-    await asyncio.sleep(0.5)
+    replies = [
+        "pull he13",
+        "pull he12&cl2",
+        "exit"
+    ]
+    await asyncio.sleep(1)
+    return replies[num]
     # :TODO テスト用のインスタンスを複数作成
-    message = selected_cards_in("")
-    yield message.json()
+    # message = selected_cards_in("")
+    # yield message.json()
 
 
 async def websocket_client():
