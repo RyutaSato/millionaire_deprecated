@@ -41,7 +41,7 @@ class Card(BaseModel):
     @classmethod
     def create_cards(cls, is_shuffle: bool = True):
         cards: list[Card] = []
-        for su in SUITE_LIST:
+        for su in SUITE_LIST[1:]:
             for num in range(1, 14):
                 cards.append(cls(suite=su, number=num, strength=(num + 10) % 13))
         if is_shuffle:
