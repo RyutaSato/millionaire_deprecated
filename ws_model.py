@@ -55,14 +55,21 @@ class BoardAllStatusOut(WebSocketOut):
     cards: list[Card]
 
 
+class PlayerOperationEnum(Enum):
+    skip = "skip"
+    pull = "pull"
+    give = "give"
+
+
 class SelectedCardsIn(WebSocketIn):
+    operation: PlayerOperationEnum
     cards: list[Card]
 
 
-class LobbyCommand(Enum):
+class LobbyCommandEnum(Enum):
     QUEUE_IN = "queue_in"
     QUEUE_CANCEL = "queue_cancel"
 
 
 class SelectedLobbyCommandIn(WebSocketIn):
-    command: LobbyCommand
+    command: LobbyCommandEnum
