@@ -4,6 +4,7 @@ import sys
 from uuid import UUID
 from fast_api_project import board
 from fast_api_project.player import Player
+from fast_api_project.card import Card
 import pytest
 
 """
@@ -21,7 +22,7 @@ class TestBoard:
                    Player(ulid=UUID("01835c3a-fb3d-832f-27eb-0126cee681e9"), name="test2"),
                    Player(ulid=UUID("01835c3a-fb3d-1c2e-8375-a475a429ca89"), name="test3"),
                    Player(ulid=UUID("01835c3a-fb3d-3520-3d79-6534542003b1"), name="test4")]
-        discards = board.create_cards()
+        discards = Card.create_cards()
         cls.board = board.Board(
             players=players,
             discards=discards
@@ -32,7 +33,7 @@ class TestBoard:
         pass
 
     def test_play(self):
-        pass
+        self.board.play()
 
     def test_input_command(self):
         pass
