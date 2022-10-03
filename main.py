@@ -27,13 +27,12 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 Base.metadata.create_all(bind=engine)
 
-
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_MINUTES = 30
 
 # :TODO replace tokens with database
-tokens = set("01835c3a-fb3d-b4e2-a43e-1682dc0be131")
+tokens = {"01835c3a-fb3d-b4e2-a43e-1682dc0be131"}
 
 
 def get_db():
@@ -87,9 +86,8 @@ def websocket_endpoint(token: str = Query()):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str = Query()):
     #  :TODO add user authentication using by token
-    #  :this code doesn't work correctly
-    # if token not in tokens:
-    #     raise HTTPException(status_code=status.WS_1008_POLICY_VIOLATION)
+    if token not in tokens:
+        raise HTTPException(status_code=status.WS_1008_POLICY_VIOLATION)
     await manager.connect(websocket)
     try:
         while True:
