@@ -73,3 +73,28 @@ class LobbyCommandEnum(Enum):
 
 class SelectedLobbyCommandIn(WebSocketIn):
     command: LobbyCommandEnum
+
+
+class AdmittedModelsIn:
+    def __init__(self):
+        self.err_handle = ErrorHandleModelIn
+        self.admitted_models: list = [SelectedCardsIn, SelectedLobbyCommandIn]
+
+    def convert_from_str(self, msg: str):
+        for admitted_model in self.admitted_models:
+            try:
+                return admitted_model.parse_raw(msg)
+            except TypeError:
+                pass
+        return None
+
+    def convert_from_dict(self, dct: dict):
+        pass
+
+    def test_selected_cards_in_from_str(self, card_str: str, operation: PlayerOperationEnum) -> SelectedCardsIn:
+        sent_at = datetime.now()
+        operation = PlayerOperationEnum.pull
+        card = Card.retrieve_from_str(card_str)
+        return SelectedCardsIn(sent_at=sent_at,
+                               operation=operation,
+                               cards=[card])

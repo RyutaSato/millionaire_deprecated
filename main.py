@@ -10,10 +10,9 @@ from db_models import UserOrm
 from user import UserCreate, UserOut, UserIn
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from pydantic import BaseModel
 from jose import JWTError, jwt
-from datetime import datetime, timedelta
 from ws_manage import Manager, WebSocket
+from ws_model import *
 from fastapi import FastAPI, WebSocketDisconnect, Depends, Form, status, Security, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse, RedirectResponse  # , ORJSONResponse
@@ -32,7 +31,15 @@ ALGORITHM = "HS256"
 TOKEN_EXPIRE_MINUTES = 30
 
 # :TODO replace tokens with database
-tokens = {"01835c3a-fb3d-b4e2-a43e-1682dc0be131"}
+tokens = {"01835c3a-fb3d-b4e2-a43e-1682dc0be131",
+          "01835c3a-fb3d-3520-3d79-6534542003b1"}
+
+
+def check_query_token(token: str = Query()):
+    if token not in tokens:
+        raise HTTPException(status_code=400, detail="Query token invalid")
+    else:
+        return
 
 
 def get_db():
@@ -46,6 +53,7 @@ def get_db():
 app = FastAPI(
     debug=True,
     version="0.85",
+    dependencies=[Depends(check_query_token)]
     # default_response_class=ORJSONResponse
 )
 origins = [
@@ -62,24 +70,8 @@ app.add_middleware(
 manager = Manager()
 
 
-@app.get("/")
+@app.get("/wschat")
 async def get():
-    return FileResponse("index.html")
-    # return HTMLResponse(html)
-
-
-@app.get("/style.css")
-async def get():
-    return FileResponse("style.css")
-
-
-@app.get("/main.js")
-async def get():
-    return FileResponse("main.js")
-
-
-@app.get("/wschat/")
-def websocket_endpoint(token: str = Query()):
     return FileResponse("wschat.html")
 
 
@@ -89,38 +81,17 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query()):
     if token not in tokens:
         raise HTTPException(status_code=status.WS_1008_POLICY_VIOLATION)
     await manager.connect(websocket)
+    admitted_mdls = AdmittedModelsIn()
+    logger.debug(admitted_mdls)
+
     try:
         while True:
             received_msg = await websocket.receive_text()
             logger.debug(received_msg)
+            received_mdl = admitted_mdls.convert_from_str(received_msg)
             await manager.send_personal_message(received_msg, websocket)
 
             # :TODO This code is going to replace as Pydantic model class
-            # json_msg = json.loads(received_msg)
-            # print(json_msg)
-            # # data = await websocket.receive_json()
-            # reply_dict = {
-            #     "client": websocket.headers.get('sec-websocket-key'),
-            #     "status": json_msg["status"],
-            #     "date": json_msg["date"],
-            #     "message": json_msg["message"]
-            # }
-            # # for key in websocket.headers.keys():
-            # #     print(key, websocket.headers.get(key))
-            # print("client:{} {}".format(
-            #     websocket.headers.get('sec-websocket-key'),
-            #     json_msg['message']
-            # ))
-            # # await manager.send_personal_message(f"You wrote: {json_msg['message']}", websocket)
-            # # await manager.broadcast(f"Client #{client_id} says: {data}")
-            # await manager.broadcast(json.dumps(reply_dict))
-            # reply_dict = {
-            #     "client": websocket.headers.get('sec-websocket-key'),
-            #     "status": "connecting",
-            #     "date": json_msg["date"],
-            #     "message": f"Matching cueue.. in {len(manager.active_connections)}"
-            # }
-            # await manager.send_personal_message(json.dumps(reply_dict), websocket)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         reply_dict = {
@@ -147,7 +118,6 @@ async def login(name: str = Form(None), password: str = Form(None), db: Session 
 @app.post("/create", response_model=UserOut)
 async def create_user(user: UserCreate, db: Session = Depends(get_db)):
     return add_user_to_db(db, UserOrm.from_pymodel(user))
-
 
 
 class Token(BaseModel):

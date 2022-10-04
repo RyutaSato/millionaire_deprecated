@@ -4,6 +4,7 @@ from multiprocessing import freeze_support
 from uuid import UUID
 
 import ulid
+from fastapi.websockets import WebSocket
 
 from fast_api_project.playeroperation import PlayerOperation, PlayerOperationEnum
 from fast_api_project.player import Player
@@ -16,6 +17,8 @@ from queue import Queue
 # from threading import Thread
 from asyncio.queues import Queue
 import asyncio
+
+from fast_api_project.user import User
 
 DEBUG = True
 if DEBUG:
@@ -37,12 +40,62 @@ class InvalidInputException(Exception):
         return "{} {}".format(self.reason, self.msg)
 
 
-class Board(BaseModel):
+class Board:
     id: UUID = ulid.new().uuid
     created_at: datetime = datetime.now()
     config: Config = Config()
     players: list[Player]
+    users: list[User] = []
     discards: list[Card] = []
+    que = Queue()
+
+    @classmethod
+    async def ws_init(cls, users: list[User]):
+        logger.debug("this game is started.")
+        cls.users = users
+        cls.players = [user.player for user in users]
+        cls.discards = Card.create_cards(is_shuffle=False)
+        return cls
+
+    async def ws_play(self):
+        # :TODO WebSocket用のPlay関数を作成
+        loop = asyncio.get_running_loop()
+        do_task = loop.create_task(self.do_command(self.que))
+        ws_accept_task = loop.create_task(self.ws_accept_command(self.que))
+        await do_task
+        await ws_accept_task
+
+    async def ws_accept_command(self, que):
+        while True:
+            for user in self.users:
+                await que.join()
+                logger.debug("{} is turn".format(user.player.ulid))
+                await self.ws_broadcast("{} is turn".format(user.player.ulid))
+                await user.ws.send_json(user.player.dict())
+                str_cmds = await user.ws.receive_text()
+                for str_cmd in str_cmds:
+                    list_cmd = str_cmd.split()
+                    if list_cmd[0] == "exit":
+                        await que.put(None)
+                        return
+                    if len(list_cmd) == 2:
+                        await que.put(PlayerOperation(
+                            player=user.player,
+                            cards=Card.retrieve_from_str(list_cmd[1]),
+                            operation=PlayerOperationEnum[list_cmd[0]]))
+                    elif len(list_cmd) == 3:
+                        targets = [self.player_from_uuid(UUID(target)) for target in list_cmd[2].split("&")]
+                        await que.put(PlayerOperation(
+                            player=user.player,
+                            cards=Card.retrieve_from_str(list_cmd[1]),
+                            targets=targets,
+                            operation=PlayerOperationEnum[list_cmd[0]]))
+                    else:
+                        raise InvalidInputException(user.player.ulid, is_skipped=True)
+
+    async def ws_broadcast(self, msg: str):
+        for user in self.users:
+            await user.ws.send_text(msg)
 
     async def play(self):
         logger.debug("this game is started.")
@@ -77,7 +130,7 @@ class Board(BaseModel):
                     test_message_cnt += 1
                 else:
                     message = await async_readline()
-                str_cmds: list[str] = list(message.split(","))
+                str_cmds: list[str] = message.split(",")
                 for str_cmd in str_cmds:
                     list_cmd = str_cmd.split()
                     if list_cmd[0] == "exit":

@@ -2,8 +2,8 @@ from pydantic import BaseModel
 
 
 class Config(BaseModel):
-    DEFAULT_JOKER_NUM: int = 2
-    DEFAULT_PLAYER_NUM: int = 4
+    JOKER_NUM: int = 2
+    PLAYER_NUM: int = 4
     FUNCTION_333SANDSTORM: bool = False
     FUNCTION_44STOP: bool = False
     FUNCTION_5SKIP: bool = False
