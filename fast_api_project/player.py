@@ -8,12 +8,12 @@ logger = logging.getLogger(__name__)
 
 
 class Player(BaseModel):
-    ulid: UUID
+    ulid_: UUID
     name: str
     cards: list[Card] = []
 
     def print_status(self):
-        logger.info("******* player: {0} name: {1} ********".format(self.ulid, self.name))
+        logger.info("******* player: {0} name: {1} ********".format(self.ulid_, self.name))
         cards_str = []
         for card in self.cards:
             cards_str.append(str(card))

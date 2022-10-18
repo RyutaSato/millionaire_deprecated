@@ -18,7 +18,7 @@ from queue import Queue
 from asyncio.queues import Queue
 import asyncio
 
-from fast_api_project.user import User
+from fast_api_project.user_management import UserManager
 
 DEBUG = True
 if DEBUG:
@@ -45,12 +45,12 @@ class Board:
     created_at: datetime = datetime.now()
     config: Config = Config()
     players: list[Player]
-    users: list[User] = []
+    users: list[UserManager] = []
     discards: list[Card] = []
     que = Queue()
 
     @classmethod
-    async def ws_init(cls, users: list[User]):
+    async def ws_init(cls, users: list[UserManager]):
         logger.debug("this game is started.")
         cls.users = users
         cls.players = [user.player for user in users]
@@ -59,9 +59,10 @@ class Board:
 
     async def ws_play(self):
         # :TODO WebSocket用のPlay関数を作成
-        loop = asyncio.get_running_loop()
-        do_task = loop.create_task(self.do_command(self.que))
-        ws_accept_task = loop.create_task(self.ws_accept_command(self.que))
+        self.distribute_cards()
+        play_loop = asyncio.new_event_loop()
+        do_task = play_loop.create_task(self.do_command(self.que))
+        ws_accept_task = play_loop.create_task(self.ws_accept_command(self.que))
         await do_task
         await ws_accept_task
 
@@ -69,8 +70,8 @@ class Board:
         while True:
             for user in self.users:
                 await que.join()
-                logger.debug("{} is turn".format(user.player.ulid))
-                await self.ws_broadcast("{} is turn".format(user.player.ulid))
+                logger.debug("{} is turn".format(user.player.ulid_))
+                await self.ws_broadcast("{} is turn".format(user.player.ulid_))
                 await user.ws.send_json(user.player.dict())
                 str_cmds = await user.ws.receive_text()
                 for str_cmd in str_cmds:
@@ -91,7 +92,7 @@ class Board:
                             targets=targets,
                             operation=PlayerOperationEnum[list_cmd[0]]))
                     else:
-                        raise InvalidInputException(user.player.ulid, is_skipped=True)
+                        raise InvalidInputException(user.player.ulid_, is_skipped=True)
 
     async def ws_broadcast(self, msg: str):
         for user in self.users:
@@ -124,7 +125,7 @@ class Board:
         while True:
             for player in self.players:
                 await que.join()
-                logger.debug("{0} is turn".format(player.ulid))
+                logger.debug("{0} is turn".format(player.ulid_))
                 if DEBUG:
                     message = await test_replies(test_message_cnt)
                     test_message_cnt += 1
@@ -149,7 +150,7 @@ class Board:
                             targets=targets,
                             operation=PlayerOperationEnum[list_cmd[0]]))
                     else:
-                        raise InvalidInputException(player.ulid, is_skipped=True)
+                        raise InvalidInputException(player.ulid_, is_skipped=True)
                 logger.debug("que is {}".format(str(que.empty())))
 
     async def do_command(self, que: Queue):
@@ -170,7 +171,7 @@ class Board:
             else:
                 logger.error("ValueError: operation command is invalid {}".format(cmd.operation))
                 raise InvalidInputException(
-                    cmd.player.ulid,
+                    cmd.player.ulid_,
                     is_skipped=True,
                     reason="command format is invalid")
             logger.debug("command is done.")
@@ -179,9 +180,9 @@ class Board:
 
     def player_from_uuid(self, ulid_: UUID) -> Player:
         for player in self.players:
-            if ulid_ == player.ulid:
+            if ulid_ == player.ulid_:
                 return player
-        raise InvalidInputException(ulid_, msg="Player with ulid {} does not exit.".format(ulid_))
+        raise InvalidInputException(ulid_, msg="Player with ulid_ {} does not exit.".format(ulid_))
 
     def distribute_cards(self) -> None:
         for i in range(len(self.discards)):
@@ -208,7 +209,7 @@ class Board:
             if player.cards:
                 player.print_status()
             else:
-                logger.info("player: {} No cards".format(player.ulid))
+                logger.info("player: {} No cards".format(player.ulid_))
 
 
 if __name__ == '__main__':

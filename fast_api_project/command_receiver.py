@@ -33,7 +33,7 @@ async def async_readline() -> str:
     return await run_as_daemon(sys.stdin.readline)
 
 
-from ws_model import SelectedCardsIn, SelectedLobbyCommandIn, PlayerOperationEnum
+from ws_model_in import SelectedCardsIn, SelectedLobbyCommandIn, PlayerOperationEnum
 from datetime import datetime
 from fast_api_project.card import Card
 

@@ -1,18 +1,19 @@
 import os
 import sys
 import uuid
-
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
+from starlette.testclient import TestClient
 
 from crud import add_user_to_db, verify_name
 from db_models import UserOrm
+from fast_api_project.user_management import UserManager
 from user import UserCreate, UserOut, UserIn
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from jose import JWTError, jwt
-from ws_manage import Manager, WebSocket
-from ws_model import *
+from ws_manage import ConnectionManager, WebSocket
+from ws_model_in import *
 from fastapi import FastAPI, WebSocketDisconnect, Depends, Form, status, Security, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse, RedirectResponse  # , ORJSONResponse
@@ -67,7 +68,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-manager = Manager()
+manager = ConnectionManager()
 
 
 @app.get("/wschat")
@@ -81,26 +82,15 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query()):
     if token not in tokens:
         raise HTTPException(status_code=status.WS_1008_POLICY_VIOLATION)
     await manager.connect(websocket)
-    admitted_mdls = AdmittedModelsIn()
-    logger.debug(admitted_mdls)
+    await UserManager(UUID(token), websocket).user_event_loop()
 
-    try:
-        while True:
-            received_msg = await websocket.receive_text()
-            logger.debug(received_msg)
-            received_mdl = admitted_mdls.convert_from_str(received_msg)
-            await manager.send_personal_message(received_msg, websocket)
 
-            # :TODO This code is going to replace as Pydantic model class
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        reply_dict = {
-            "client": websocket.headers.get('sec-websocket-key'),
-            "status": "disconnected",
-            "message": "Client #{} left the chat".format(token)
-        }
-        await manager.broadcast(json.dumps(reply_dict))
-
+def test_websocket():
+    client = TestClient(app)
+    with client.websocket_connect("/ws") as websocket:
+        data = websocket.receive_json()
+        print(data)
+        assert data == {"msg": "Hello WebSocket"}
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -125,8 +115,8 @@ class Token(BaseModel):
     token_type: str
 
 
-def create_access_token(ulid: str, expire: datetime = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRE_MINUTES)):
-    return jwt.encode({"sub": ulid, "exp": expire}, SECRET_KEY)
+def create_access_token(ulid_: str, expire: datetime = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRE_MINUTES)):
+    return jwt.encode({"sub": ulid_, "exp": expire}, SECRET_KEY)
 
 
 @app.post("/token", response_model=Token)
@@ -143,7 +133,7 @@ def create_token(user: UserIn, db: Session = Depends(get_db)):
     return {"token": token, "token_type": "bearer"}
 
 
-def get_current_user(ulid: str, db: Session, token: str = Depends(oauth2_scheme)):
+def get_current_user(ulid_: str, db: Session, token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -153,9 +143,9 @@ def get_current_user(ulid: str, db: Session, token: str = Depends(oauth2_scheme)
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         logger.debug(tokens)
         jwt_ulid: str = payload.get("sub")
-        if ulid is None:
+        if ulid_ is None:
             raise credentials_exception
-        logger.debug(ulid)
+        logger.debug(ulid_)
     except JWTError:
         raise credentials_exception
     user: UserOut = db.query(UserOrm).filter(UserOrm.ulid == jwt_ulid).first()
@@ -165,5 +155,5 @@ def get_current_user(ulid: str, db: Session, token: str = Depends(oauth2_scheme)
 
 
 @app.post("/token_login")
-def token_authenticate(ulid: str, token: str, db: Session = Depends(get_db)):
-    return get_current_user(ulid, db, token)
+def token_authenticate(ulid_: str, token: str, db: Session = Depends(get_db)):
+    return get_current_user(ulid_, db, token)

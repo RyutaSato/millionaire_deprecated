@@ -21,7 +21,7 @@ import asyncio
 # sample = SampleModel(
 #     name="rsato",
 #     id=123,
-#     uuid=ulid.new().uuid,
+#     uuid=ulid_.new().uuid,
 #     created_at=datetime.now(),
 #     friends=[FriendModel(id=111, name="aaa"), FriendModel(id=222, name="bbb")]
 # )
