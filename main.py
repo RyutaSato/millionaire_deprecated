@@ -12,7 +12,7 @@ from user import UserCreate, UserOut, UserIn
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from jose import JWTError, jwt
-from ws_manage import ConnectionManager, WebSocket
+from ws_manage import ConnectionManager
 from ws_model_in import *
 from fastapi import FastAPI, WebSocketDisconnect, Depends, Form, status, Security, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from db_config import SessionLocal, engine, Base
 import json
 import logging
-from fastapi import HTTPException
+from fastapi import HTTPException, WebSocket
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -79,18 +79,11 @@ async def get():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, token: str = Query()):
     #  :TODO add user authentication using by token
-    if token not in tokens:
+    if token_certification(token):
         raise HTTPException(status_code=status.WS_1008_POLICY_VIOLATION)
-    await manager.connect(websocket)
-    await UserManager(UUID(token), websocket).user_event_loop()
+    user = UserManager(uuid.UUID(token), websocket, debug=True)
+    await user.user_event_loop()
 
-
-def test_websocket():
-    client = TestClient(app)
-    with client.websocket_connect("/ws") as websocket:
-        data = websocket.receive_json()
-        print(data)
-        assert data == {"msg": "Hello WebSocket"}
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -157,3 +150,10 @@ def get_current_user(ulid_: str, db: Session, token: str = Depends(oauth2_scheme
 @app.post("/token_login")
 def token_authenticate(ulid_: str, token: str, db: Session = Depends(get_db)):
     return get_current_user(ulid_, db, token)
+
+
+def token_certification(token: str) -> bool:
+    # Test用
+    if token in tokens:
+        return True
+    return False

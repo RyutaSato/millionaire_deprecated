@@ -34,6 +34,12 @@ class CardSuite(Enum):
 
 
 class Card(BaseModel):
+    """
+    params:
+        suite: CardSuite
+        number: CardNumber
+        strength: int
+    """
     suite: CardSuite
     number: CardNumber
     strength: int
@@ -43,7 +49,7 @@ class Card(BaseModel):
         cards: list[Card] = []
         for su in SUITE_LIST[1:]:
             for num in range(1, 14):
-                cards.append(cls(suite=su, number=num, strength=(num + 10) % 13))
+                cards.append(cls(suite=su, number=num, strength=cls.set_strength(num)))
         if is_shuffle:
             shuffle(cards)
         return cards

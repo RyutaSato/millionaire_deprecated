@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class Player(BaseModel):
     ulid_: UUID
-    name: str
+    name: str = "user_name"
     cards: list[Card] = []
 
     def print_status(self):
