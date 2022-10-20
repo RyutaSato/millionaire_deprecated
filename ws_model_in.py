@@ -62,8 +62,6 @@ class SelectedLobbyCommandIn(WebSocketIn):
     command: LobbyCommandEnum
 
 
-
-
 class AdmittedModelsIn:
     def __init__(self):
         self.err_handle = ErrorHandleModelIn
@@ -74,16 +72,23 @@ class AdmittedModelsIn:
             try:
                 return admitted_model.parse_raw(msg)
             except TypeError:
-                pass
+                logger.debug(f"{admitted_model} is invalid and skipped")
         return None
 
     def convert_from_dict(self, dct: dict):
-        pass
+        for admitted_model in self.admitted_models:
+            try:
+                return admitted_model(**dct)
+            except TypeError:
+                logger.debug(f"{admitted_model} is invalid and skipped")
+        return None
 
-    def test_selected_cards_in_from_str(self, card_str: str, operation: PlayerCommandEnum) -> PlayerSelectedCardsIn:
+    def test_selected_cards_in_from_str(self,
+                                        card_str: str,
+                                        command: PlayerCommandEnum = PlayerCommandEnum.pull
+                                        ) -> PlayerSelectedCardsIn:
         sent_at = datetime.now()
-        operation = PlayerCommandEnum.pull
         card = Card.retrieve_from_str(card_str)
         return PlayerSelectedCardsIn(sent_at=sent_at,
-                                     operation=operation,
+                                     command=command,
                                      cards=[card])

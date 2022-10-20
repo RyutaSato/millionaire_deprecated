@@ -86,7 +86,7 @@ class UserManager:
                     try:
                         await self._ws.send_json(data)
                     except Exception as e:
-                        logger.error(f"{e} json decode is failure")
+                        logger.error(f"{e} json decode is in failure")
                         logger.error(str(data))
                         await self._ws.send_text(str(data))
         except WebSocketDisconnect:

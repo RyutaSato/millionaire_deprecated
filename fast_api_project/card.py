@@ -1,10 +1,14 @@
 import logging
+import re
 from pydantic import BaseModel
 from enum import Enum
 from random import shuffle
 
 logger = logging.getLogger(__name__)
 SUITE_LIST = ["jo", "sp", "cl", "di", "he"]
+MAX_STRENGTH = 100
+REGEX_CARD = r"^(jo|sp|cl|di|he)(0|1|2|3|4|5|6|7|8|9|11|12|13)$"
+pattern = re.compile(REGEX_CARD)
 
 
 class CardNumber(Enum):
@@ -45,45 +49,39 @@ class Card(BaseModel):
     strength: int
 
     @classmethod
-    def create_cards(cls, is_shuffle: bool = True):
+    def create_cards(cls, is_shuffle: bool = True, joker_num: int = 2):
         cards: list[Card] = []
+        for _ in range(joker_num):
+            cards.append(cls(suite=CardSuite("jo"), number=CardNumber(0), strength=MAX_STRENGTH))
         for su in SUITE_LIST[1:]:
             for num in range(1, 14):
-                cards.append(cls(suite=su, number=num, strength=cls.set_strength(num)))
+                cards.append(cls(suite=CardSuite(su), number=CardNumber(num), strength=cls.set_strength(num)))
         if is_shuffle:
             shuffle(cards)
         return cards
 
     @classmethod
-    def retrieve_from_str(cls, strings: str):
-        str_cards = strings.split("&")
-        cards: list[cls] = []
-        for str_card in str_cards:
-            if not str_card[2:].isnumeric() or not str_card[:2] in SUITE_LIST:
-                logger.error("ValueError: {} includes a wrong value".format(strings))
-                return []
-            num = int(str_card[2:])
-            if not 0 <= num <= 13:
-                logger.error("ValueError: Invalid card number: {}".format(num))
-                return []
-            cards.append(cls(
-                suite=str_card[:2],
-                number=int(str_card[2:]),
-                strength=cls.set_strength(int(str_card[2:]))
-            ))
-        return cards
+    def create_from_str(cls, string: str):
+        if pattern.match(string):
+            su, num = pattern.match(string).groups()
+            num = int(num)
+            if (su == "jo" and int(num) == 0) or (su != "jo" and 0 < num < 14):
+                return cls(suite=CardSuite(su),
+                           number=CardNumber(num),
+                           strength=cls.set_strength(num))
+        raise ValueError("string doesn't match any patterns")
 
     def __str__(self):
         return f"{self.suite}{self.number}"
 
     def __eq__(self, other):
         if not isinstance(other, Card):
-            return NotImplemented
+            raise NotImplementedError
         return self.strength == other.strength
 
     def __lt__(self, other):
         if not isinstance(other, Card):
-            return NotImplemented
+            raise NotImplementedError
         return self.strength < other.strength
 
     def __ne__(self, other):
@@ -103,21 +101,9 @@ class Card(BaseModel):
 
     @staticmethod
     def set_strength(num: int):
-        return (num + 10) % 13
+        if 0 < num < 14:
+            return (num + 10) % 13
+        return MAX_STRENGTH
 
     class Config:
         use_enum_values = True
-
-
-# :TODO Move to test_card.py
-if __name__ == "__main__":
-    li = []
-    for suite in SUITE_LIST[1:]:
-        for number in range(1, 14):
-            li.append(Card(suite=suite, number=number, strength=Card.set_strength(number)))
-    for i in li:
-        print(i.json(), end=" ")
-    print()
-    li = Card.retrieve_from_str("he13&sp8")
-    for i in li:
-        print(i.json())

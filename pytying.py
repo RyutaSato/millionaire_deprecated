@@ -3,12 +3,10 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 from pydantic import BaseModel
+from fast_api_project.card import Card, CardNumber, CardSuite
 import ulid
 
-
-class FriendModel(BaseModel):
-    id: int
-    name: str
+from ws_model_in import AdmittedModelsIn
 
 
 class User(BaseModel):
@@ -18,8 +16,11 @@ class User(BaseModel):
 
 class SampleModel(User):
     uuid: UUID
+    created_at: datetime = datetime.now()
+    friends: list[User] = []
+
+class SampleModel2(User):
     created_at: datetime
-    friends: list[FriendModel] = []
 
 
 sample = SampleModel(
@@ -27,8 +28,11 @@ sample = SampleModel(
     id=123,
     uuid=ulid.new().uuid,
     created_at=datetime.now(),
-    friends=[FriendModel(id=111, name="aaa"), FriendModel(id=222, name="bbb")]
+    friends=[User(id=111, name="aaa"), User(id=222, name="bbb")]
 )
+
+admit_models = AdmittedModelsIn()
+admit_models
 tmp_dict = {}
 tmp_dict["name"] = "rsato"
 tmp_dict["id"] = 123
@@ -40,6 +44,21 @@ sample_from_dict = SampleModel(**tmp_dict)
 print(sample_from_dict.json())
 print(sample_from_str)
 
+import re
+pattern1 = r"^(jo|sp|cl|di|he)(0|1|2|3|4|5|6|7|8|9|11|12|13)$"
+pattern = re.compile(pattern1)
+print(pattern)
+li = ["jo", "jo1", "jo24", "ja11", "cll11", "he00", "di01"]
+for i in li:
+    literal = pattern.match(i)
+    print(i, literal)
+    if literal:
+        literal = literal.groups()
+        card = Card(suite=CardSuite(literal[0]),
+                    number=CardNumber(int(literal[1])),
+                    strength=Card.set_strength(int(literal[1]))
+                    )
+        print(card.json())
 
 class TmpEnum(Enum):
     aaa = "aaa"
