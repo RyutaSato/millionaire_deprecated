@@ -6,7 +6,7 @@ from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from fast_api_project.player import Player
 from ws_manage import ConnectionManager
-from ws_model_in import *
+from ws_request_model import *
 from asyncio import Queue
 
 manager = ConnectionManager()

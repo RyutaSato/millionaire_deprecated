@@ -12,12 +12,9 @@ class Player(BaseModel):
     name: str = "user_name"
     cards: list[Card] = []
 
-    def print_status(self):
-        logger.info("******* player: {0} name: {1} ********".format(self.ulid_, self.name))
-        cards_str = []
-        for card in self.cards:
-            cards_str.append(str(card))
-        logger.info(", ".join(cards_str))
+    @property
+    def card_num(self) -> int:
+        return int(len(self.cards))
 
 
 if __name__ == '__main__':

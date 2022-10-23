@@ -40,7 +40,7 @@ class TestCard:
             assert sorted_card == str(card)
         with pytest.raises(NotImplementedError):
             if cards[0] >= case2[0]:
-                print("success")
+                pass
         with pytest.raises(NotImplementedError):
             if cards[0] != case2[0]:
-                print("success")
+                pass

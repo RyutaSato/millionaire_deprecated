@@ -13,7 +13,7 @@ from user import UserCreate, UserOut, UserIn
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from jose import JWTError, jwt
 from ws_manage import ConnectionManager
-from ws_model_in import *
+from ws_request_model import *
 from fastapi import FastAPI, WebSocketDisconnect, Depends, Form, status, Security, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse, RedirectResponse  # , ORJSONResponse

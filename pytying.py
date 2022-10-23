@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from fast_api_project.card import Card, CardNumber, CardSuite
 import ulid
 
-from ws_model_in import AdmittedModelsIn
 
 
 class User(BaseModel):
@@ -31,8 +30,8 @@ sample = SampleModel(
     friends=[User(id=111, name="aaa"), User(id=222, name="bbb")]
 )
 
-admit_models = AdmittedModelsIn()
-admit_models
+# admit_models = AdmittedModelsIn()
+# admit_models
 tmp_dict = {}
 tmp_dict["name"] = "rsato"
 tmp_dict["id"] = 123
@@ -60,11 +59,22 @@ for i in li:
                     )
         print(card.json())
 
+
 class TmpEnum(Enum):
     aaa = "aaa"
     bbb = "bbb"
     ccc = "ccc"
 
 
-print(TmpEnum("aaa"))
-from ws_model_in import WebSocketIn, SelectedLobbyCommandIn, LobbyCommandEnum
+string = '{"name": "aaa", "id": 123}'
+user = User.parse_raw(string)
+# pydantic.error_wrappers.ValidationError
+dct = {"aaa": "aaa"}
+for key in dict(user).keys():
+    print(key)
+print()
+for key in TmpEnum.__dict__.keys():
+    try:
+        print(dct[str(key)])
+    except KeyError as e:
+        print(e.args)
