@@ -39,7 +39,8 @@ from fast_api_project.card import Card
 import logging
 
 from fast_api_project.player import Player
-from ws_types import RqType, RqTypes, UserDataType, GameOperationType
+from types_rq import RqType, RqTypes
+from types_both import UserDataType, GameOperationType
 
 logger = logging.getLogger(__name__)
 DEBUG = True
@@ -55,6 +56,11 @@ class _WebSocketRequest(BaseModel):
 
     class Config:
         use_enum_values = True
+
+
+class RqOperation(_WebSocketRequest):
+    rq_type = RqType.Operation
+    operation: GameOperationType
 
 
 class RqGetStatusUser(_WebSocketRequest):
@@ -75,7 +81,7 @@ class RqChangeStatusUser(_WebSocketRequest):
     status_type: UserDataType
 
 
-class RqOpePullCards(_WebSocketRequest):
+class RqOpePullCards(RqOperation):
     """
     cardsが空リストの場合、skipを指す。
     """

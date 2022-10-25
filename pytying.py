@@ -55,7 +55,7 @@ for i in li:
         literal = literal.groups()
         card = Card(suite=CardSuite(literal[0]),
                     number=CardNumber(int(literal[1])),
-                    strength=Card.set_strength(int(literal[1]))
+                    _strength=Card.set_strength(int(literal[1]))
                     )
         print(card.json())
 

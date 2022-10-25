@@ -32,7 +32,7 @@ class TestCard:
             card = Card.create_from_str(ca)
             cards.append(card)
             assert ca == str(card)
-            assert res == card.strength
+            assert res == card._strength
 
         for card in cards[1:]:
             assert cards[0] > card
