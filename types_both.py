@@ -1,4 +1,12 @@
 from enum import Enum
+from ws_notify_model import *
+
+# keyは"pl_type"
+NtPlayTypes = {
+    "pull": NtPlayPullCards,
+    "my_turn": NtPlayMyTurn,
+    "end": NtPlayEnd
+}
 
 
 class UserDataType(Enum):
@@ -12,5 +20,7 @@ class UserStatusType(Enum):
     InGame = "in_game"
 
 
-class GameOperationType(Enum):
-    pull = "pull"
+class PlayOperationType(Enum):
+    Pull = "pull"
+    MyTurn = "my_turn"
+    End = "end"

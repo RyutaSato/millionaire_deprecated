@@ -1,4 +1,7 @@
+import asyncio
 import logging
+from asyncio import Event
+from datetime import datetime
 
 from fast_api_project.card import Card
 from types_both import UserStatusType
@@ -12,22 +15,14 @@ def logger_change_user_data(attr, before, after):
 
 class UserData:
     def __init__(self):
-        self._name: str = "loading..."
         self._number: int = -1
-        self._status: UserStatusType = UserStatusType.Lobby
         self._cards: list[Card] = []
         self._field: list[Card] = []  # 次に出すカードの判定に用いる。
         self._discards: list[Card] = []
         self._players: list[int] = []
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, new_name: str):
-        logger_change_user_data("name", self._name, new_name)
-        self._name = new_name
+        self.flag_my_turn: Event | None = None
+        self.flag_end: Event | None = None
+        self.time_out: datetime | None = None
 
     @property
     def number(self):
@@ -38,25 +33,13 @@ class UserData:
         logger_change_user_data("number", self._number, new_num)
         self._number = new_num
 
-    @property
-    def status(self):
-        return self._status
-
-    @status.setter
-    def status(self, new_status: UserStatusType):
-        logger_change_user_data("status", self._status.name, new_status.name)
-        self._status = new_status
-
-    # @property
-    # def cards(self):
-    #     return self._cards
-
     def pull_cards(self, selected_cards: list[Card], am_i: bool):
         if am_i:
             for nt_card in selected_cards:
                 for i in range(len(self._cards)):
                     if self._cards[i] == nt_card:
                         self._cards.pop(i)
+                        break
             logger_change_user_data("cards", self._cards, selected_cards)
         logger_change_user_data("field", self._field, selected_cards)
         self._field = selected_cards
@@ -69,3 +52,13 @@ class UserData:
                     return [tmp_card]
             return []
         return [self._cards[0]]
+
+    def play_reset(self):
+        self._number = -1
+        self._cards = []
+        self._field = []
+        self._discards = []
+        self._players = []
+        self.flag_loaded_data = None
+        self.flag_my_turn = None
+        self.time_out = None

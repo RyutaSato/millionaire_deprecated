@@ -23,6 +23,7 @@
             cards:      [card1, card2, ...]
 
 """
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from abc import abstractmethod, ABCMeta
@@ -33,7 +34,7 @@ from fast_api_project.card import Card
 from fast_api_project.player import Player
 from user import UserOut
 from types_nt import NtType
-from types_both import GameOperationType
+from types_both import PlayOperationType, UserStatusType
 
 logger = logging.getLogger(__name__)
 
@@ -66,10 +67,10 @@ class NtStatus(_WebSocketNotify):
     """
 
     def reflect(self, data: UserData):
-        data.name = self.user.name
+        data.status = self.status_type
 
     nt_type = NtType.Status
-    user: UserOut
+    status_type: UserStatusType
 
 
 class NtStatusGame(_WebSocketNotify):
@@ -83,10 +84,11 @@ class NtStatusGame(_WebSocketNotify):
         data.discards = self.discards
         data.field = self.field
         data.players = self.players
+        data.flag_loaded_game_data.set()
 
     nt_type = NtType.Game
-    discards: list[Card]
-    field: list[Card]
+    discards: list[Card] = []
+    field: list[Card] = []
     players: list[int]
 
 
@@ -97,10 +99,7 @@ class _WebSocketNotifyPlay(_WebSocketNotify, metaclass=ABCMeta):
     """
 
     nt_type = NtType.Play
-    pl_type: GameOperationType
-    player: int
-    targets: list[int]
-    cards: list[Card]
+    pl_type: PlayOperationType
 
 
 class NtProfile(_WebSocketNotify):
@@ -111,15 +110,30 @@ class NtProfile(_WebSocketNotify):
         pass
 
 
-class NtPlayPullCards(_WebSocketNotifyPlay):
-    pl_type = GameOperationType.pull
-    targets = []
+class NtPlayMyTurn(_WebSocketNotifyPlay):
+    pl_type = PlayOperationType.MyTurn
+    time_out: datetime
 
     def reflect(self, data: UserData):
-        if data.number == self.player:
-            data.pull_cards(self.cards, True)
-        else:
-            data.pull_cards(self.cards, False)
+        data.time_out = self.time_out
+        data.flag_my_turn.set()
+
+
+class NtPlayEnd(_WebSocketNotifyPlay):
+    pl_type = PlayOperationType.End
+
+    def reflect(self, data: UserData):
+        data.play_reset()
+
+
+class NtPlayPullCards(_WebSocketNotifyPlay):
+    pl_type = PlayOperationType.Pull
+    player: int
+    targets: list[int] = []
+    cards: list[Card]
+
+    def reflect(self, data: UserData):
+        data.pull_cards(self.cards, data.number == self.player)
 
 # class ErrorHandleModelNotify(_WebSocketNotify):
 #     @validator("error")

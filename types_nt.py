@@ -8,10 +8,7 @@ NtTypes = {
     # "play"は条件分岐
 }
 
-# keyは"pl_type"
-NtPlayTypes = {
-    "pull": NtPlayPullCards,
-}
+
 
 
 class NtType(Enum):
