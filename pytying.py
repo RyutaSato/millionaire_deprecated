@@ -117,5 +117,43 @@ async def future_practice():
     await s(5)
 
 
+async def deco(func):
+    print("this is deco start")
+    await asyncio.sleep(5)
+
+    def _deco(*args, **kwargs):
+        print("this is _deco start")
+        print(f"func value is {func(*args, **kwargs)}")
+        print("this is _deco end")
+
+    print("this is deco end")
+    return _deco
+
+
+#
+# @deco
+# def cul():
+#     print("this is cul")
+#     return 2
+
+class DecoClass:
+    @classmethod
+    def create_class(cls):
+        print("created class")
+        return cls
+
+    @deco
+    def __init__(self):
+        print("initialized!")
+
+    print("aaa")
+
+    @deco
+    def aaa(self):
+        return "aaa"
+
+
 if __name__ == "__main__":
-    asyncio.run(future_practice())
+    _, q = map(int, input().split())
+    for _ in range(q):
+        t, a, b = map(int, input().split())

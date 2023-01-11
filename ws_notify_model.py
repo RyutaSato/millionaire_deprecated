@@ -84,7 +84,7 @@ class NtStatusGame(_WebSocketNotify):
         data.discards = self.discards
         data.field = self.field
         data.players = self.players
-        data.flag_loaded_game_data.set()
+        data.flag
 
     nt_type = NtType.Game
     discards: list[Card] = []

@@ -52,13 +52,3 @@ class UserData:
                     return [tmp_card]
             return []
         return [self._cards[0]]
-
-    def play_reset(self):
-        self._number = -1
-        self._cards = []
-        self._field = []
-        self._discards = []
-        self._players = []
-        self.flag_loaded_data = None
-        self.flag_my_turn = None
-        self.time_out = None

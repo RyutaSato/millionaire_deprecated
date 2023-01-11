@@ -33,6 +33,8 @@ TOKEN_EXPIRE_MINUTES = 30
 
 # :TODO replace tokens with database
 tokens = {"01835c3a-fb3d-b4e2-a43e-1682dc0be131",
+          "01835c3a-fb3d-3520-3d79-6534542003b1",
+          "01835c3a-fb3d-1c2e-8375-a475a429ca89",
           "01835c3a-fb3d-3520-3d79-6534542003b1"}
 
 
