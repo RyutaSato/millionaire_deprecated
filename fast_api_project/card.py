@@ -1,26 +1,39 @@
 import logging
 import re
-from dataclasses import field
-
-from pydantic import BaseModel, PrivateAttr
 from enum import Enum
-from random import shuffle
+import logging
+
+from fast_api_project.cards import Cards
+from fast_api_project.player import Player
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
+# TODO configファイルに移動する
+from uuid import UUID
+
 SUITE_LIST = ["jo", "sp", "cl", "di", "he"]
 MAX_STRENGTH = 100
-REGEX_CARD = r"^(jo|sp|cl|di|he)(0|1|2|3|4|5|6|7|8|9|11|12|13)$"
+REGEX_CARD = r"(^jo0$)|(^(sp|cl|di|he)(0|1|2|3|4|5|6|7|8|9|11|12|13)$)"
 pattern = re.compile(REGEX_CARD)
 
 
 def create_from_str(string: str):
+    """
+    Validate `string` and returns a card class.
+    Args:
+        string (str): The string must be one of "sp", "cl", "di" and "he", and a number from 0 to 13, or "jo0".
+    Returns:
+        Card: Description of return value
+    Raises:
+        ValueError: If `string` doesn't match any patterns.
+    """
     if pattern.match(string):
         su, num = pattern.match(string).groups()
         num = int(num)
-        if (su == "jo" and int(num) == 0) or (su != "jo" and 0 < num < 14):
-            return Card(suite=CardSuite(su),
-                        number=CardNumber(num),
-                        _strength=Card.set_strength(num))
+        return Card(suite=CardSuite(su),
+                    number=CardNumber(num),
+                    _strength=Card.set_strength(num))
     raise ValueError("string doesn't match any patterns")
 
 
@@ -50,79 +63,47 @@ class CardSuite(Enum):
     HEART = SUITE_LIST[4]
 
 
-class Card(BaseModel):
+class Card:
     """
     params:
         suite: CardSuite
         number: CardNumber
         _strength: int
     """
-    suite: CardSuite
-    number: CardNumber
-    _strength: int = PrivateAttr()
-
-    # @property
-    # def alias(self):
-    #     return f"{self._suite}{self._number}"
-    #
 
     def __init__(self, **data):
-        super().__init__(**data)
-        self._strength = self.set_strength(data["number"])
-
-    #
-    # def json(self, *args, **kwargs) -> str:
-    #     return self.__str__()
-
-    # @classmethod
-    # def parse_raw(cls, string: str, *args, **kwargs):
-    #     return cls.create_from_str(string)
-
-    @classmethod
-    def create_cards(cls, is_shuffle: bool = True, joker_num: int = 2):
-        cards: list[Card] = []
-        for _ in range(joker_num):
-            cards.append(cls(suite=CardSuite("jo"), number=CardNumber(0)))
-        for su in SUITE_LIST[1:]:
-            for num in range(1, 14):
-                cards.append(cls(suite=CardSuite(su), number=CardNumber(num)))
-        if is_shuffle:
-            shuffle(cards)
-        return cards
+        self.suite: CardSuite = data["suite"]
+        self.number: CardNumber = data["number"]
+        if "strength" in data.keys():
+            self._strength: int = data["strength"]
+        else:
+            self._strength: int = self.set_strength(data["number"])
 
     @classmethod
     def create_from_str(cls, string: str):
-        if pattern.match(string):
-            su, num = pattern.match(string).groups()
-            num = int(num)
-            if (su == "jo" and int(num) == 0) or (su != "jo" and 0 < num < 14):
-                return cls(suite=CardSuite(su),
-                           number=CardNumber(num),
-                           # strength=cls.set_strength(num)
-                           )
-        raise ValueError("string doesn't match any patterns")
-
-    # def __setattr__(self, key, val):
-    #     method = self.__config__.property_set_methods.get(key)
-    #     if method is None:
-    #         super().__setattr__(key, val)
-    #     else:
-    #         getattr(self, method)(val)
+        if not pattern.match(string):
+            raise ValueError("string doesn't match any patterns")
+        su, num = pattern.match(string).groups()
+        num = int(num)
+        if (su == "jo" and int(num) == 0) or (su != "jo" and 0 < num < 14):
+            return cls(suite=CardSuite(su),
+                       number=CardNumber(num),
+                       )
 
     def __str__(self):
-        return f"{self.suite}{self.number}"
+        return f"{self.suite.value}{self.number.value}"
 
     def __repr__(self):
         return self.__str__()
 
     def __eq__(self, other):
         if not isinstance(other, Card):
-            raise NotImplementedError
+            raise ValueError(f"{type(other)} is invalid")
         return self._strength == other._strength
 
     def __lt__(self, other):
         if not isinstance(other, Card):
-            raise NotImplementedError
+            raise ValueError(f"{type(other)} is invalid")
         return self._strength < other._strength
 
     def __ne__(self, other):
@@ -137,28 +118,28 @@ class Card(BaseModel):
     def __ge__(self, other):
         return not self.__lt__(other)
 
-    def __del__(self):
-        pass
+    def __add__(self, other):
+        if not isinstance(other, int):
+            ValueError("'__add__' method must be integer")
+        return Card(suite=self.suite, number=self.number, strength=self._strength + other)
 
     @staticmethod
-    def set_strength(num: int | CardNumber):
-        if type(num) != int:
-            num = num.value
+    def set_strength(num: int | CardNumber) -> int:
+        # カードの強さはCard class内で定義されるべきではない？？
+        if not isinstance(num, int):
+            num: int = num.value
         if 0 < num < 14:
             return (num + 10) % 13
         return MAX_STRENGTH
 
-    class Config:
-        use_enum_values = True
-        # property_set_methods = {"coords": "set_coords"}
-
 
 if __name__ == "__main__":
-    class Cards(BaseModel):
-        cards: list[Card] = Card.create_cards()
-
-
-    cards = Cards()
-    print(len(bytearray(str(cards.json()).encode(encoding='utf-8'))))
-    print(cards.json())
-    print(Cards.parse_raw(cards.json()))
+    for _ in range(10):
+        board = Board.test_init()
+        for player in board.players:
+            logger.debug(player.name)
+            logger.debug(f"sequence pair: {player.cards.lookfor_sequence()}")
+            logger.debug(f"equal pair: {player.cards.lookfor_equal()}")
+            logger.debug("------------------------------------")
+        board.test_run()
+    # print(bytearray(str(cards).encode(encoding='utf-8')))
