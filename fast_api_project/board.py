@@ -1,22 +1,9 @@
-import sys
-from datetime import datetime
 from multiprocessing import freeze_support
 from uuid import UUID
 
-import ulid
-from fastapi.websockets import WebSocket
-
 from fast_api_project.cards import Cards
-from fast_api_project.playeroperation import PlayerOperation, PlayerOperationEnum
 from fast_api_project.player import Player
-from fast_api_project.card import Card, SUITE_LIST
 import logging
-from fast_api_project.config import Config
-from queue import Queue
-from asyncio.queues import Queue
-import asyncio
-
-from fast_api_project.user_management import UserManager
 
 DEBUG = True
 if DEBUG:
@@ -70,7 +57,7 @@ class Board:
         return cls(players, is_shuffle=True, joker_num=0)
 
     def test_run(self):
-        while len(board) > 1:
+        while len(self) > 1:
             self._turn += 1
             if self._passed_flag_total >= 3:
                 self._turn = self._reset_passed_flag()
@@ -97,6 +84,25 @@ class Board:
             # sleep(1)
 
 
+# import sys
+# from datetime import datetime
+# from multiprocessing import freeze_support
+# from uuid import UUID
+#
+# import ulid
+# from fastapi.websockets import WebSocket
+#
+# from fast_api_project.cards import Cards
+# from fast_api_project.playeroperation import PlayerOperation, PlayerOperationEnum
+# from fast_api_project.player import Player
+# from fast_api_project.card import Card, SUITE_LIST
+# import logging
+# from fast_api_project.config import Config
+# from queue import Queue
+# from asyncio.queues import Queue
+# import asyncio
+#
+# from fast_api_project.user_management import UserManager
 # class Board:
 #     id: UUID = ulid.new().uuid
 #     created_at: datetime = datetime.now()

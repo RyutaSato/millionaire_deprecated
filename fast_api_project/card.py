@@ -3,8 +3,6 @@ import re
 from enum import Enum
 import logging
 
-from fast_api_project.cards import Cards
-from fast_api_project.player import Player
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -65,7 +63,8 @@ class CardSuite(Enum):
 
 class Card:
     """
-    params:
+
+    Args:
         suite: CardSuite
         number: CardNumber
         _strength: int
@@ -125,6 +124,14 @@ class Card:
 
     @staticmethod
     def set_strength(num: int | CardNumber) -> int:
+        """
+
+        Args:
+            num:
+
+        Returns:
+
+        """
         # カードの強さはCard class内で定義されるべきではない？？
         if not isinstance(num, int):
             num: int = num.value
@@ -134,6 +141,7 @@ class Card:
 
 
 if __name__ == "__main__":
+    from fast_api_project.board import Board
     for _ in range(10):
         board = Board.test_init()
         for player in board.players:

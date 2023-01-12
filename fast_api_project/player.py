@@ -1,7 +1,5 @@
 from fast_api_project.card import Card
-import ulid
 from uuid import UUID
-from pydantic import BaseModel
 import logging
 
 from fast_api_project.cards import Cards
