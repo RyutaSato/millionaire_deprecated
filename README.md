@@ -8,21 +8,6 @@
 
 ## Naming and Coding roles
 
-### 1.ファイル名
-* **db_???.py**: データベース関連ファイル
-* 
-### 2.静的ファイル
-    HTML, CSS, JPEG，PNG等はsrcディレクトリに入れます
-### 3.テストファイル
-    テストファイルはtestディレクトリに入れます
-
-
 ## Development:
 - ゲーム盤面
 - DB操作プログラム
-
-## Issue:
-- postgresql_connect.pyのファイル名が冗長である
-   - db_connect.pyに変更する．
-
-## Resolved:
